@@ -9,7 +9,7 @@ import User from '@/models/User';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Babadook - Film Öneri Platformu',
+  title: 'Find The Fear - Film Öneri Platformu',
   description: 'AI destekli film öneri platformu',
 };
 

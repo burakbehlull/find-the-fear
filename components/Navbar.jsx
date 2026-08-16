@@ -26,7 +26,7 @@ export default function Navbar({ user }) {
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 text-xl font-light tracking-wider hover:opacity-80 transition-opacity">
             <Film className="h-5 w-5" />
-            <span className="uppercase">Babadook</span>
+            <span className="uppercase">Find The Fear</span>
           </Link>
 
           <div className="flex items-center gap-1">
