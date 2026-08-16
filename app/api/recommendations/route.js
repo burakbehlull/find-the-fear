@@ -4,6 +4,14 @@ import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { getMovieRecommendations } from '@/lib/gemini';
 
+function normalizeTitle(title) {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[^\w\sğüşıöçĞÜŞİÖÇ]/g, '');
+}
+
 export async function POST(request) {
   try {
     await dbConnect();
@@ -28,16 +36,16 @@ export async function POST(request) {
       );
     }
 
-    // Gemini AI'dan önerileri al
+    const watchedMovies = user.watchedMovies || [];
+
     const recommendations = await getMovieRecommendations(
-      user.watchedMovies || [],
+      watchedMovies,
       useWatchHistory
     );
 
-    // İzlenmiş filmleri tekrar önerme
-    const watchedTitles = user.watchedMovies.map(m => m.title.toLowerCase());
+    const watchedNormalized = watchedMovies.map(m => normalizeTitle(m.title));
     const filteredRecommendations = recommendations.filter(
-      rec => !watchedTitles.includes(rec.title.toLowerCase())
+      rec => !watchedNormalized.includes(normalizeTitle(rec.title))
     );
 
     return NextResponse.json({

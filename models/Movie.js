@@ -8,15 +8,15 @@ const MovieSchema = new mongoose.Schema({
   },
   year: {
     type: String,
-    required: true,
+    default: 'Belirtilmemiş',
   },
   genre: {
     type: String,
-    required: true,
+    default: 'Belirtilmemiş',
   },
   description: {
     type: String,
-    required: true,
+    default: 'Açıklama eklenmemiş',
   },
   reason: {
     type: String,
