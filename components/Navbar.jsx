@@ -55,7 +55,7 @@ export default function Navbar({ user }) {
                   onClick={() => openAuth('register')}
                   className="ml-2 bg-white text-black hover:bg-gray-200 text-sm font-light rounded-full px-6"
                 >
-                  Deploy agent
+                  Register
                 </Button>
               </>
             )}

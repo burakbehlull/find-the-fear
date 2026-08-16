@@ -78,7 +78,7 @@ export default function HomePage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-8">
+              {/*<div className="grid grid-cols-3 gap-8">
                 <div>
                   <div className="text-3xl font-light mb-1">10,000+</div>
                   <div className="text-sm text-gray-400 font-light">Active Users</div>
@@ -91,19 +91,17 @@ export default function HomePage() {
                   <div className="text-3xl font-light mb-1">1M+</div>
                   <div className="text-sm text-gray-400 font-light">Recommendations</div>
                 </div>
-              </div>
-            </div>
+              </div>*/}
+            </div> 
 
             {/* Right Side - Popular Movies */}
-            <div className="relative">
-              {/* Trending Badge */}
+            {/*<div className="relative"> 
               <div className="absolute -top-4 right-4 z-20">
                 <div className="px-4 py-2 btn-gradient rounded-full text-sm font-light shadow-lg">
                   ✨ Trending
                 </div>
               </div>
 
-              {/* Popular Movies Card */}
               <div className="glass rounded-2xl p-6 border border-[#8b7a9e]/20 relative backdrop-blur-xl">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-light">Popular Movies</h3>
@@ -144,7 +142,6 @@ export default function HomePage() {
                   ))}
                 </div>
 
-                {/* Featured Badge */}
                 <div className="mt-6 pt-4 border-t border-white/10">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#6b5b7a]/20 border border-[#8b7a9e]/30">
                     <Sparkles className="h-3 w-3 text-[#b8a8c8]" />
@@ -153,12 +150,11 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Decorative Elements */}
               <div className="absolute -z-10 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full">
                 <div className="absolute top-0 right-0 w-72 h-72 bg-[#6b5b7a]/15 rounded-full blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#9d4edd]/15 rounded-full blur-3xl"></div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
