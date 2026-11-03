@@ -66,7 +66,7 @@ export default function HomePage() {
                     <Sparkles className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link href="/userpanel">
+                <Link href="/settings">
                   <Button 
                     size="lg" 
                     variant="ghost" 

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AuthDialog from '@/components/AuthDialog';
-import { Film, User, LogOut } from 'lucide-react';
+import { Film, LayoutDashboard, Library, User, LogOut, Shield } from 'lucide-react';
 
 export default function Navbar({ user }) {
   const [authOpen, setAuthOpen] = useState(false);
@@ -24,7 +24,7 @@ export default function Navbar({ user }) {
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 text-xl font-light tracking-wider hover:opacity-80 transition-opacity">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-3 text-xl font-light tracking-wider hover:opacity-80 transition-opacity">
             <Film className="h-5 w-5" />
             <span className="uppercase">Find The Fear</span>
           </Link>
@@ -32,15 +32,32 @@ export default function Navbar({ user }) {
           <div className="flex items-center gap-1">
             {user ? (
               <>
-                <Link href="/recommendations">
-                  <Button variant="ghost" className="text-sm font-light">Film Önerileri</Button>
-                </Link>
-                <Link href="/userpanel">
+                <Link href="/dashboard">
                   <Button variant="ghost" className="text-sm font-light">
-                    <User className="h-4 w-4 mr-2" />
-                    Panel
+                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                    Dashboard
                   </Button>
                 </Link>
+                <Link href="/library">
+                  <Button variant="ghost" className="text-sm font-light">
+                    <Library className="h-4 w-4 mr-2" />
+                    Kütüphane
+                  </Button>
+                </Link>
+                <Link href={`/profile/${user.username}`}>
+                  <Button variant="ghost" className="text-sm font-light">
+                    <User className="h-4 w-4 mr-2" />
+                    Profil
+                  </Button>
+                </Link>
+                {user.role === 'admin' && (
+                  <Link href="/admin">
+                    <Button variant="ghost" className="text-sm font-light text-yellow-500 hover:text-yellow-400">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
                 <Button variant="ghost" onClick={handleLogout} className="text-sm font-light">
                   <LogOut className="h-4 w-4 mr-2" />
                   Çıkış

@@ -22,9 +22,13 @@ export async function GET(request) {
     return NextResponse.json({
       user: {
         id: user._id,
+        userId: user._id.toString(),
         username: user.username,
         email: user.email,
+        role: user.role || 'user',
         watchedMovies: user.watchedMovies,
+        createdAt: user.createdAt,
+        lastUsernameChange: user.lastUsernameChange,
       }
     });
   } catch (error) {

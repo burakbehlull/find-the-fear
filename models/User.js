@@ -21,14 +21,59 @@ const UserSchema = new mongoose.Schema({
     required: [true, 'Şifre gerekli'],
     minlength: [6, 'Şifre en az 6 karakter olmalı'],
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  },
+  lastUsernameChange: {
+    type: Date,
+    default: null,
+  },
+  bio: {
+    type: String,
+    maxlength: [200, 'Bio en fazla 200 karakter olabilir'],
+    default: '',
+  },
+  profileImage: {
+    type: String,
+    default: '',
+  },
+  favoriteGenre: {
+    type: String,
+    default: '',
+  },
+  privacy: {
+    showMovies: {
+      type: Boolean,
+      default: true,
+    },
+  },
   watchedMovies: [{
-    title: {
-      type: String,
+    movieId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LibraryMovie',
       required: true,
     },
-    year: String,
-    genre: String,
-    description: String,
+    isPublic: {
+      type: Boolean,
+      default: true,
+    },
+    rating: {
+      type: Number,
+      min: 0,
+      max: 10,
+      default: null,
+    },
+    tags: [{
+      type: String,
+      trim: true,
+    }],
+    note: {
+      type: String,
+      maxlength: [500, 'Not en fazla 500 karakter olabilir'],
+      default: '',
+    },
     addedAt: {
       type: Date,
       default: Date.now,
