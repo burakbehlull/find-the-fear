@@ -86,7 +86,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const user = await verifyAuth(request);
-    if (!user || user.role !== 'admin') {
+    if (!user || !user.isAdmin) {
       return NextResponse.json(
         { success: false, message: 'Yetkisiz erişim' },
         { status: 403 }

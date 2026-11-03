@@ -38,13 +38,16 @@ export default function AdminPage() {
   const [stats, setStats] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
   const [movies, setMovies] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [adminNote, setAdminNote] = useState('');
   const [showAddMovie, setShowAddMovie] = useState(false);
   const [showMovieList, setShowMovieList] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
   const [addingMovie, setAddingMovie] = useState(false);
   const [deletingMovieId, setDeletingMovieId] = useState(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState(null);
   
   // Film ekleme formu
   const [movieForm, setMovieForm] = useState({
@@ -74,7 +77,10 @@ export default function AdminPage() {
       }
 
       const data = await res.json();
-      if (data.user.role !== 'admin') {
+      console.log('User data:', data.user); // Debug
+      
+      // Admin veya owner kontrolü
+      if (!data.user || !data.user.isAdmin) {
         toast.error('Bu sayfaya erişim yetkiniz yok');
         router.push('/dashboard');
         return;
@@ -111,6 +117,13 @@ export default function AdminPage() {
       const moviesData = await moviesRes.json();
       if (moviesData.success) {
         setMovies(moviesData.movies);
+      }
+
+      // Kullanıcıları al
+      const usersRes = await fetch('/api/admin/users');
+      const usersData = await usersRes.json();
+      if (usersData.success) {
+        setUsers(usersData.users);
       }
     } catch (error) {
       console.error('Veri yükleme hatası:', error);
@@ -240,6 +253,37 @@ export default function AdminPage() {
     }
   };
 
+  const handleUpdateUserRole = async (userId, action) => {
+    const actionText = action === 'make-admin' ? 'admin yapmak' : 'admin yetkisini kaldırmak';
+    if (!confirm(`Bu kullanıcıyı ${actionText} istediğinizden emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      setUpdatingRoleId(userId);
+      
+      const res = await fetch('/api/admin/users/update-role', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(data.message);
+        fetchData(); // Kullanıcı listesini yenile
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('Rol güncelleme hatası:', error);
+      toast.error('İşlem başarısız');
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
@@ -301,7 +345,7 @@ export default function AdminPage() {
         )}
 
         {/* Film Ekle ve Listele Butonları */}
-        <div className="mb-6 flex gap-3">
+        <div className="mb-6 flex flex-wrap gap-3">
           <Button
             onClick={() => setShowAddMovie(!showAddMovie)}
             className="bg-green-600 hover:bg-green-700"
@@ -317,6 +361,16 @@ export default function AdminPage() {
             <Film className="h-4 w-4 mr-2" />
             {showMovieList ? 'Listeyi Gizle' : `Tüm Filmler (${movies.length})`}
           </Button>
+
+          {user?.isOwner && (
+            <Button
+              onClick={() => setShowUserList(!showUserList)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              {showUserList ? 'Listeyi Gizle' : `Kullanıcılar (${users.length})`}
+            </Button>
+          )}
         </div>
 
         {/* Film Ekleme Formu */}
@@ -612,6 +666,111 @@ export default function AdminPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Kullanıcı Listesi (Sadece Owner) */}
+        {showUserList && user?.isOwner && (
+          <Card className="bg-gray-800/50 border-gray-700 mb-6">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Kullanıcı Yönetimi
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Kullanıcılara admin yetkisi ver veya kaldır (Sadece Owner)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {users.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">Kullanıcı bulunamadı</p>
+              ) : (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {users.map((u) => {
+                    const isAdmin = u.roles.includes('admin');
+                    const isOwner = u.roles.includes('owner');
+                    const isCurrentUser = u._id === user.userId;
+
+                    return (
+                      <div
+                        key={u._id}
+                        className="bg-gray-700/50 rounded-lg p-4 flex items-center justify-between hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-white">@{u.username}</h3>
+                            {isOwner && (
+                              <span className="px-2 py-0.5 bg-yellow-600 text-yellow-100 text-xs rounded-full">
+                                👑 OWNER
+                              </span>
+                            )}
+                            {isAdmin && !isOwner && (
+                              <span className="px-2 py-0.5 bg-red-600 text-red-100 text-xs rounded-full">
+                                🛡️ ADMIN
+                              </span>
+                            )}
+                            {!isAdmin && !isOwner && (
+                              <span className="px-2 py-0.5 bg-gray-600 text-gray-300 text-xs rounded-full">
+                                👤 USER
+                              </span>
+                            )}
+                            {isCurrentUser && (
+                              <span className="px-2 py-0.5 bg-blue-600 text-blue-100 text-xs rounded-full">
+                                (Sen)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-400 mt-1">{u.email}</p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                            <span>🎬 {u.movieCount} film</span>
+                            <span>📅 {format(new Date(u.createdAt), 'dd/MM/yyyy')}</span>
+                          </div>
+                        </div>
+
+                        {/* Admin Yap / Kaldır Butonu */}
+                        {!isOwner && !isCurrentUser && (
+                          <div>
+                            {isAdmin ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateUserRole(u._id, 'remove-admin')}
+                                disabled={updatingRoleId === u._id}
+                                className="bg-orange-600 hover:bg-orange-700"
+                              >
+                                {updatingRoleId === u._id ? (
+                                  <span className="animate-spin">⏳</span>
+                                ) : (
+                                  <>
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Admin Kaldır
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateUserRole(u._id, 'make-admin')}
+                                disabled={updatingRoleId === u._id}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                {updatingRoleId === u._id ? (
+                                  <span className="animate-spin">⏳</span>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Admin Yap
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

@@ -488,7 +488,13 @@ export default function SettingsPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-gray-400">Rol:</span>
-                <span className="text-white capitalize">{user.role}</span>
+                <span className="text-white capitalize">
+                  {user.roles?.map((role) => {
+                    if (role === 'owner') return '👑 Owner';
+                    if (role === 'admin') return '🛡️ Admin';
+                    return '👤 User';
+                  }).join(', ')}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">İzlenen Film Sayısı:</span>

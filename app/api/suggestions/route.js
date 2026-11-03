@@ -16,7 +16,7 @@ export async function GET(request) {
     let query = {};
 
     // Admin tüm önerileri görebilir
-    if (user && user.role === 'admin') {
+    if (user && user.isAdmin) {
       if (status) {
         query.status = status;
       }

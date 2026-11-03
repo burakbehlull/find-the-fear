@@ -19,13 +19,32 @@ export async function GET(request) {
       return NextResponse.json({ user: null }, { status: 200 });
     }
 
+    // Roller array olarak güncelle (migration)
+    if (!Array.isArray(user.roles)) {
+      user.roles = ['user'];
+      await user.save();
+    }
+
+    const isAdmin = user.roles?.includes('admin') || user.roles?.includes('owner');
+    const isOwner = user.roles?.includes('owner');
+
+    console.log('Auth check:', { // Debug
+      username: user.username,
+      roles: user.roles,
+      isAdmin,
+      isOwner
+    });
+
     return NextResponse.json({
       user: {
         id: user._id,
         userId: user._id.toString(),
         username: user.username,
         email: user.email,
-        role: user.role || 'user',
+        roles: user.roles || ['user'],
+        // Helper properties
+        isAdmin,
+        isOwner,
         watchedMovies: user.watchedMovies,
         createdAt: user.createdAt,
         lastUsernameChange: user.lastUsernameChange,

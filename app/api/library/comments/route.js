@@ -117,7 +117,7 @@ export async function DELETE(request) {
     }
 
     // Sadece kendi yorumunu veya admin silebilir
-    if (comment.userId.toString() !== user.userId && user.role !== 'admin') {
+    if (comment.userId.toString() !== user.userId && !user.isAdmin) {
       return NextResponse.json(
         { success: false, message: 'Bu yorumu silemezsiniz' },
         { status: 403 }

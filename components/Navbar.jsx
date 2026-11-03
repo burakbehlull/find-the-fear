@@ -60,7 +60,7 @@ export default function Navbar({ user }) {
                     Profil
                   </Button>
                 </Link>
-                {user.role === 'admin' && (
+                {user.isAdmin && (
                   <Link href="/admin">
                     <Button variant="ghost" className="text-sm font-light text-yellow-500 hover:text-yellow-400">
                       <Shield className="h-4 w-4 mr-2" />
@@ -125,7 +125,7 @@ export default function Navbar({ user }) {
                       Profil
                     </Button>
                   </Link>
-                  {user.role === 'admin' && (
+                  {user.isAdmin && (
                     <Link href="/admin" onClick={closeMobileMenu}>
                       <Button variant="ghost" className="w-full justify-start text-sm font-light text-yellow-500">
                         <Shield className="h-4 w-4 mr-2" />

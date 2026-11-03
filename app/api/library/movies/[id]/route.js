@@ -37,7 +37,7 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const user = await verifyAuth(request);
-    if (!user || user.role !== 'admin') {
+    if (!user || !user.isAdmin) {
       return NextResponse.json(
         { success: false, message: 'Yetkisiz erişim' },
         { status: 403 }
@@ -79,7 +79,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const user = await verifyAuth(request);
-    if (!user || user.role !== 'admin') {
+    if (!user || !user.isAdmin) {
       return NextResponse.json(
         { success: false, message: 'Yetkisiz erişim' },
         { status: 403 }

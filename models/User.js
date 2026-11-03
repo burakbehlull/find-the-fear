@@ -21,10 +21,10 @@ const UserSchema = new mongoose.Schema({
     required: [true, 'Şifre gerekli'],
     minlength: [6, 'Şifre en az 6 karakter olmalı'],
   },
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user',
+  roles: {
+    type: [String],
+    enum: ['user', 'admin', 'owner'],
+    default: ['user'],
   },
   lastUsernameChange: {
     type: Date,

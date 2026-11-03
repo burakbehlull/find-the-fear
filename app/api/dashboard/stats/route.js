@@ -55,7 +55,7 @@ export async function GET(request) {
 
     // Admin istatistikleri
     let adminStats = null;
-    if (user.role === 'admin') {
+    if (user && user.isAdmin) {
       const totalLibraryMovies = await LibraryMovie.countDocuments({ status: 'approved' });
       const totalUsers = await User.countDocuments();
       const pendingSuggestions = await MovieSuggestion.countDocuments({ status: 'pending' });

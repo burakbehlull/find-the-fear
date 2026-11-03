@@ -6,11 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "make-admin": "node scripts/make-admin.js",
-    "check-user": "node scripts/check-user.js",
-    "add-sample-movies": "node scripts/add-sample-movie.js",
-    "cleanup-deleted-movies": "node scripts/cleanup-deleted-movies.js"
+    "lint": "next lint"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

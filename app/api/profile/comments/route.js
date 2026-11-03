@@ -142,7 +142,7 @@ export async function DELETE(request) {
     if (
       comment.commenterId.toString() !== user.userId &&
       comment.profileUserId.toString() !== user.userId &&
-      user.role !== 'admin'
+      !user.isAdmin
     ) {
       return NextResponse.json(
         { success: false, message: 'Bu yorumu silemezsiniz' },
