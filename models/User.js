@@ -74,6 +74,25 @@ const UserSchema = new mongoose.Schema({
       maxlength: [500, 'Not en fazla 500 karakter olabilir'],
       default: '',
     },
+    watchedAt: {
+      type: Date,
+      default: null,
+    },
+    watchedWith: [{
+      type: String,
+      trim: true,
+    }],
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
+  savedMovies: [{
+    movieId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LibraryMovie',
+      required: true,
+    },
     addedAt: {
       type: Date,
       default: Date.now,

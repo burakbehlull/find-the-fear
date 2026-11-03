@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AuthDialog from '@/components/AuthDialog';
-import { Film, LayoutDashboard, Library, User, LogOut, Shield, Menu, X } from 'lucide-react';
+import { Film, LayoutDashboard, Library, User, LogOut, Shield, Menu, X, Bookmark } from 'lucide-react';
 
 export default function Navbar({ user }) {
   const [authOpen, setAuthOpen] = useState(false);
@@ -52,6 +52,12 @@ export default function Navbar({ user }) {
                   <Button variant="ghost" className="text-sm font-light">
                     <Library className="h-4 w-4 mr-2" />
                     Kütüphane
+                  </Button>
+                </Link>
+                <Link href="/watchlist">
+                  <Button variant="ghost" className="text-sm font-light">
+                    <Bookmark className="h-4 w-4 mr-2" />
+                    İzleyeceklerim
                   </Button>
                 </Link>
                 <Link href={`/profile/${user.username}`}>
@@ -117,6 +123,12 @@ export default function Navbar({ user }) {
                     <Button variant="ghost" className="w-full justify-start text-sm font-light">
                       <Library className="h-4 w-4 mr-2" />
                       Kütüphane
+                    </Button>
+                  </Link>
+                  <Link href="/watchlist" onClick={closeMobileMenu}>
+                    <Button variant="ghost" className="w-full justify-start text-sm font-light">
+                      <Bookmark className="h-4 w-4 mr-2" />
+                      İzleyeceklerim
                     </Button>
                   </Link>
                   <Link href={`/profile/${user.username}`} onClick={closeMobileMenu}>

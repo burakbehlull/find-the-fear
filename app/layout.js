@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { Toaster } from 'react-hot-toast';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
@@ -27,13 +28,20 @@ async function getUser() {
     await dbConnect();
     const user = await User.findById(decoded.userId).select('-password');
     
-    return user ? {
+    if (!user) return null;
+
+    // Ensure roles is an array
+    const roles = Array.isArray(user.roles) ? user.roles : [];
+    
+    return {
       id: user._id.toString(),
       userId: user._id.toString(),
       username: user.username,
       email: user.email,
-      role: user.role,
-    } : null;
+      roles,
+      isAdmin: roles.includes('admin') || roles.includes('owner'),
+      isOwner: roles.includes('owner'),
+    };
   } catch (error) {
     return null;
   }
@@ -44,7 +52,7 @@ export default async function RootLayout({ children }) {
 
   return (
     <html lang="tr">
-      <body className={inter.className}>
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -69,7 +77,8 @@ export default async function RootLayout({ children }) {
           }}
         />
         <Navbar user={user} />
-        <main>{children}</main>
+        <main className="flex-1">{children}</main>
+        <Footer />
       </body>
     </html>
   );

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Star, TrendingUp, Library, User, Settings, Sparkles } from 'lucide-react';
+import { Film, Star, TrendingUp, Library, User, Settings, Sparkles, Bookmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const GENRE_NAMES = {
@@ -130,7 +130,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Hızlı Aksiyonlar */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-red-900/50 to-red-950/50 border-red-800 hover:scale-105 transition-transform cursor-pointer">
             <Link href="/library">
               <CardHeader>
@@ -150,6 +150,18 @@ export default function DashboardPage() {
                 <CardTitle className="text-white">AI Önerileri</CardTitle>
                 <CardDescription className="text-gray-300">
                   Yapay zeka ile kişisel film önerileri al
+                </CardDescription>
+              </CardHeader>
+            </Link>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-900/50 to-green-950/50 border-green-800 hover:scale-105 transition-transform cursor-pointer">
+            <Link href="/watchlist">
+              <CardHeader>
+                <Bookmark className="h-8 w-8 text-green-400 mb-2" />
+                <CardTitle className="text-white">İzleyeceklerim</CardTitle>
+                <CardDescription className="text-gray-300">
+                  Kaydettiğin filmleri gör ve izledim olarak işaretle
                 </CardDescription>
               </CardHeader>
             </Link>

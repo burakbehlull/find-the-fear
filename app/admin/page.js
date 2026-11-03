@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Film, Users, AlertCircle, CheckCircle, XCircle, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { Film, Users, AlertCircle, CheckCircle, XCircle, ExternalLink, Plus, Trash2, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -63,6 +63,12 @@ export default function AdminPage() {
     imdbLink: '',
     duration: '',
   });
+
+  // JSON bulk import
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [jsonInput, setJsonInput] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState(null);
 
   useEffect(() => {
     checkAuth();
@@ -284,6 +290,56 @@ export default function AdminPage() {
     }
   };
 
+  const handleBulkImport = async () => {
+    try {
+      setImporting(true);
+      setImportResults(null);
+
+      // JSON'u parse et
+      let movies;
+      try {
+        movies = JSON.parse(jsonInput);
+      } catch (error) {
+        toast.error('Geçersiz JSON formatı! JSON syntax kontrolü yapın.');
+        return;
+      }
+
+      // Array kontrolü
+      if (!Array.isArray(movies)) {
+        toast.error('JSON bir dizi (array) olmalı! Örnek: [{ ... }, { ... }]');
+        return;
+      }
+
+      if (movies.length === 0) {
+        toast.error('En az 1 film ekleyin!');
+        return;
+      }
+
+      // API'ye gönder
+      const res = await fetch('/api/admin/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ movies }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`${data.results.successful} film başarıyla eklendi!`);
+        setImportResults(data.results);
+        setJsonInput('');
+        fetchData(); // Film listesini yenile
+      } else {
+        toast.error(data.message || 'Import işlemi başarısız');
+      }
+    } catch (error) {
+      console.error('Bulk import hatası:', error);
+      toast.error('Film import işlemi başarısız');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
@@ -352,6 +408,14 @@ export default function AdminPage() {
           >
             <Plus className="h-4 w-4 mr-2" />
             {showAddMovie ? 'Formu Kapat' : 'Yeni Film Ekle'}
+          </Button>
+          
+          <Button
+            onClick={() => setShowBulkImport(!showBulkImport)}
+            className="bg-purple-600 hover:bg-purple-700"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {showBulkImport ? 'JSON Import Kapat' : 'Çoklu Film Ekle (JSON)'}
           </Button>
           
           <Button
@@ -568,6 +632,126 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* JSON Bulk Import */}
+        {showBulkImport && (
+          <Card className="bg-gray-800/50 border-gray-700 mb-6">
+            <CardHeader>
+              <CardTitle className="text-white">Çoklu Film Ekleme (JSON)</CardTitle>
+              <CardDescription className="text-gray-400">
+                Aşağıdaki JSON formatında birden fazla film ekleyin
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* JSON Format Example */}
+              <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">📝 JSON Format Örneği:</h4>
+                <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap">
+{`[
+  {
+    "title": "The Ring",
+    "year": 2002,
+    "series": "The Ring Serisi",
+    "genres": ["psikolojik", "doğaüstü"],
+    "description": "Film açıklaması burada...",
+    "director": "Gore Verbinski",
+    "poster": "https://example.com/poster.jpg",
+    "imdbId": "tt0298130",
+    "imdbRating": 7.1,
+    "imdbLink": "https://www.imdb.com/title/tt0298130/",
+    "duration": 115
+  },
+  {
+    "title": "The Conjuring",
+    "year": 2013,
+    "genres": ["doğaüstü", "gerilim"],
+    "description": "İkinci film açıklaması...",
+    "director": "James Wan",
+    "duration": 112
+  }
+]`}
+                </pre>
+                <div className="mt-3 text-xs text-gray-400 space-y-1">
+                  <p>• <strong className="text-white">Zorunlu alanlar:</strong> title, year, genres (array), description</p>
+                  <p>• <strong className="text-white">Opsiyonel alanlar:</strong> series, director, poster, imdbId, imdbRating, imdbLink, duration</p>
+                  <p>• <strong className="text-white">Türler:</strong> komedi, psikolojik, vahşet, gerilim, gizem, doğaüstü, belgesel</p>
+                </div>
+              </div>
+
+              {/* JSON Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  JSON Verisi (Array formatında)
+                </label>
+                <Textarea
+                  value={jsonInput}
+                  onChange={(e) => setJsonInput(e.target.value)}
+                  className="bg-gray-700 border-gray-600 text-white font-mono text-sm"
+                  placeholder='[{"title": "Film Adı", "year": 2024, ...}]'
+                  rows={12}
+                />
+              </div>
+
+              {/* Import Results */}
+              {importResults && (
+                <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                  <h4 className="text-sm font-semibold text-white mb-3">📊 Import Sonuçları:</h4>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-green-400">✅ Başarılı: {importResults.successful}</p>
+                    <p className="text-red-400">❌ Başarısız: {importResults.failed}</p>
+                    <p className="text-gray-300">📝 Toplam: {importResults.total}</p>
+                    
+                    {importResults.errors && importResults.errors.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-600">
+                        <p className="text-red-400 font-semibold mb-2">Hatalar:</p>
+                        <div className="space-y-1 max-h-40 overflow-y-auto">
+                          {importResults.errors.map((error, idx) => (
+                            <p key={idx} className="text-xs text-gray-400">
+                              • {error}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleBulkImport}
+                  disabled={importing || !jsonInput.trim()}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700"
+                >
+                  {importing ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      Import Ediliyor...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Filmleri Import Et
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setShowBulkImport(false);
+                    setJsonInput('');
+                    setImportResults(null);
+                  }}
+                  variant="outline"
+                  className="bg-gray-700 border-gray-600 hover:bg-gray-600"
+                >
+                  İptal
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
