@@ -7,8 +7,8 @@ import { differenceInDays } from 'date-fns';
 export async function PUT(request) {
   try {
     // Kullanıcı kontrolü
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await verifyAuth(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, message: 'Giriş yapmalısınız' },
         { status: 401 }
@@ -27,8 +27,8 @@ export async function PUT(request) {
     await connectDB();
 
     // Mevcut kullanıcıyı bul
-    const user = await User.findById(authResult.user.userId);
-    if (!user) {
+    const currentUser = await User.findById(user.userId);
+    if (!currentUser) {
       return NextResponse.json(
         { success: false, message: 'Kullanıcı bulunamadı' },
         { status: 404 }
@@ -36,8 +36,8 @@ export async function PUT(request) {
     }
 
     // 7 günlük kontrol
-    if (user.lastUsernameChange) {
-      const daysSinceChange = differenceInDays(new Date(), new Date(user.lastUsernameChange));
+    if (currentUser.lastUsernameChange) {
+      const daysSinceChange = differenceInDays(new Date(), new Date(currentUser.lastUsernameChange));
       if (daysSinceChange < 7) {
         return NextResponse.json(
           { success: false, message: `Kullanıcı adını değiştirmek için ${7 - daysSinceChange} gün beklemelisiniz` },
@@ -48,7 +48,7 @@ export async function PUT(request) {
 
     // Kullanıcı adı zaten kullanılıyor mu?
     const existingUser = await User.findOne({ username });
-    if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+    if (existingUser && existingUser._id.toString() !== currentUser._id.toString()) {
       return NextResponse.json(
         { success: false, message: 'Bu kullanıcı adı zaten kullanılıyor' },
         { status: 409 }
@@ -56,16 +56,16 @@ export async function PUT(request) {
     }
 
     // Kullanıcı adını güncelle
-    user.username = username;
-    user.lastUsernameChange = new Date();
-    await user.save();
+    currentUser.username = username;
+    currentUser.lastUsernameChange = new Date();
+    await currentUser.save();
 
     return NextResponse.json({
       success: true,
       message: 'Kullanıcı adı güncellendi',
       user: {
-        username: user.username,
-        lastUsernameChange: user.lastUsernameChange,
+        username: currentUser.username,
+        lastUsernameChange: currentUser.lastUsernameChange,
       },
     });
   } catch (error) {

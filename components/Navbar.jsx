@@ -24,7 +24,7 @@ export default function Navbar({ user }) {
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/50 backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-3 text-xl font-light tracking-wider hover:opacity-80 transition-opacity">
+          <Link href={user ? "/" : "/"} className="flex items-center gap-3 text-xl font-light tracking-wider hover:opacity-80 transition-opacity">
             <Film className="h-5 w-5" />
             <span className="uppercase">Find The Fear</span>
           </Link>

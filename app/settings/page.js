@@ -5,9 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { User, Mail, Lock, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { User, Mail, Lock, AlertCircle, CheckCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
+
+const GENRE_OPTIONS = [
+  { value: 'komedi', label: 'Komedi Korku' },
+  { value: 'psikolojik', label: 'Psikolojik Korku' },
+  { value: 'vahşet', label: 'Vahşet' },
+  { value: 'gerilim', label: 'Gerilim' },
+  { value: 'gizem', label: 'Gizem' },
+  { value: 'doğaüstü', label: 'Doğaüstü' },
+  { value: 'belgesel', label: 'Belgesel' },
+];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -21,6 +32,9 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [bio, setBio] = useState('');
+  const [favoriteGenre, setFavoriteGenre] = useState('');
+  const [profileImage, setProfileImage] = useState('');
   
   // Kullanıcı adı değiştirme hakkı
   const [canChangeUsername, setCanChangeUsername] = useState(true);
@@ -42,6 +56,9 @@ export default function SettingsPage() {
       setUser(data.user);
       setUsername(data.user.username);
       setEmail(data.user.email);
+      setBio(data.user.bio || '');
+      setFavoriteGenre(data.user.favoriteGenre || '');
+      setProfileImage(data.user.profileImage || '');
       
       // Kullanıcı adı değiştirme kontrolü
       if (data.user.lastUsernameChange) {
@@ -183,6 +200,38 @@ export default function SettingsPage() {
     }
   };
 
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    
+    if (bio.length > 200) {
+      toast.error('Bio en fazla 200 karakter olabilir');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const res = await fetch('/api/user/update-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bio, favoriteGenre, profileImage }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        toast.success('Profil güncellendi');
+        fetchUserData();
+      } else {
+        toast.error(data.message || 'Profil güncellenemedi');
+      }
+    } catch (error) {
+      console.error('Profil güncelleme hatası:', error);
+      toast.error('Bir hata oluştu');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center pt-20">
@@ -198,6 +247,82 @@ export default function SettingsPage() {
         <p className="text-gray-400 mb-8">Hesap bilgilerinizi yönetin</p>
 
         <div className="space-y-6">
+          {/* Profil Ayarları */}
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Profil Bilgileri
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Bio, profil fotoğrafı ve favori türünüzü ayarlayın
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div>
+                  <label className="text-sm text-gray-300 mb-2 block">Bio</label>
+                  <Textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    disabled={updating}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    placeholder="Kendinden bahset... (Max 200 karakter)"
+                    maxLength={200}
+                    rows={3}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">{bio.length}/200 karakter</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-300 mb-2 block">Profil Fotoğrafı URL</label>
+                  <Input
+                    value={profileImage}
+                    onChange={(e) => setProfileImage(e.target.value)}
+                    disabled={updating}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    placeholder="https://example.com/avatar.jpg"
+                  />
+                  {profileImage && (
+                    <div className="mt-3">
+                      <img
+                        src={profileImage}
+                        alt="Preview"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-600"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-gray-300 mb-2 block">Favori Tür</label>
+                  <select
+                    value={favoriteGenre}
+                    onChange={(e) => setFavoriteGenre(e.target.value)}
+                    disabled={updating}
+                    className="w-full bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2"
+                  >
+                    <option value="">Seçiniz...</option>
+                    {GENRE_OPTIONS.map((genre) => (
+                      <option key={genre.value} value={genre.value}>
+                        {genre.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={updating}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {updating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Profili Güncelle
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
           {/* Kullanıcı Adı Değiştirme */}
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
@@ -369,6 +494,20 @@ export default function SettingsPage() {
                 <span className="text-gray-400">İzlenen Film Sayısı:</span>
                 <span className="text-white">{user.watchedMovies?.length || 0}</span>
               </div>
+              {user.favoriteGenre && (
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Favori Tür:</span>
+                  <span className="text-white">
+                    {GENRE_OPTIONS.find(g => g.value === user.favoriteGenre)?.label || user.favoriteGenre}
+                  </span>
+                </div>
+              )}
+              {user.bio && (
+                <div className="pt-2 border-t border-gray-700">
+                  <span className="text-gray-400 block mb-1">Bio:</span>
+                  <p className="text-white text-sm italic">"{user.bio}"</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

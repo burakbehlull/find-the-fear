@@ -7,8 +7,8 @@ import bcrypt from 'bcryptjs';
 export async function PUT(request) {
   try {
     // Kullanıcı kontrolü
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await verifyAuth(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, message: 'Giriş yapmalısınız' },
         { status: 401 }
@@ -34,8 +34,8 @@ export async function PUT(request) {
     await connectDB();
 
     // Mevcut kullanıcıyı bul
-    const user = await User.findById(authResult.user.userId);
-    if (!user) {
+    const currentUser = await User.findById(user.userId);
+    if (!currentUser) {
       return NextResponse.json(
         { success: false, message: 'Kullanıcı bulunamadı' },
         { status: 404 }
@@ -43,7 +43,7 @@ export async function PUT(request) {
     }
 
     // Mevcut şifreyi kontrol et
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(currentPassword, currentUser.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, message: 'Mevcut şifre yanlış' },
@@ -53,8 +53,8 @@ export async function PUT(request) {
 
     // Yeni şifreyi hashle ve güncelle
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    await user.save();
+    currentUser.password = hashedPassword;
+    await currentUser.save();
 
     return NextResponse.json({
       success: true,

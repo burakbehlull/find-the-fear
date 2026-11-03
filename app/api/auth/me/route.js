@@ -29,6 +29,9 @@ export async function GET(request) {
         watchedMovies: user.watchedMovies,
         createdAt: user.createdAt,
         lastUsernameChange: user.lastUsernameChange,
+        bio: user.bio,
+        favoriteGenre: user.favoriteGenre,
+        profileImage: user.profileImage,
       }
     });
   } catch (error) {

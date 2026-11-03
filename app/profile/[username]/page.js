@@ -254,9 +254,11 @@ export default function ProfilePage() {
                       Favori Tür: <span className="font-semibold text-white">{GENRE_NAMES[profile.favoriteGenre]}</span>
                     </div>
                   )}
-                  <div>
-                    Katılma: <span className="font-semibold text-white">{format(new Date(profile.createdAt), 'MMMM yyyy')}</span>
-                  </div>
+                  {profile.createdAt && (
+                    <div>
+                      Katılma: <span className="font-semibold text-white">{format(new Date(profile.createdAt), 'MMMM yyyy')}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               {profile.isOwnProfile && (

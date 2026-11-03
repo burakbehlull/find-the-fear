@@ -6,8 +6,8 @@ import User from '@/models/User';
 export async function PUT(request) {
   try {
     // Kullanıcı kontrolü
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated) {
+    const user = await verifyAuth(request);
+    if (!user) {
       return NextResponse.json(
         { success: false, message: 'Giriş yapmalısınız' },
         { status: 401 }
@@ -25,33 +25,32 @@ export async function PUT(request) {
 
     await connectDB();
 
-    // Mevcut kullanıcıyı bul
-    const user = await User.findById(authResult.user.userId);
-    if (!user) {
+    const currentUser = await User.findById(user.userId);
+    if (!currentUser) {
       return NextResponse.json(
         { success: false, message: 'Kullanıcı bulunamadı' },
         { status: 404 }
       );
     }
 
-    // Email zaten kullanılıyor mu?
+
     const existingUser = await User.findOne({ email });
-    if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+    if (existingUser && existingUser._id.toString() !== currentUser._id.toString()) {
       return NextResponse.json(
         { success: false, message: 'Bu email adresi zaten kullanılıyor' },
         { status: 409 }
       );
     }
 
-    // Email'i güncelle
-    user.email = email;
-    await user.save();
+ 
+    currentUser.email = email;
+    await currentUser.save();
 
     return NextResponse.json({
       success: true,
       message: 'Email güncellendi',
       user: {
-        email: user.email,
+        email: currentUser.email,
       },
     });
   } catch (error) {
