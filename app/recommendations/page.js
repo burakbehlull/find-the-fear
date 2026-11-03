@@ -40,7 +40,7 @@ export default function RecommendationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white pt-24 pb-20">
+    <div className="min-h-screen bg-black text-white pt-28 pb-20">
       <div className="container mx-auto px-6">
         <div className="max-w-6xl mx-auto">
           <div className="mb-16">

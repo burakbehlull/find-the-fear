@@ -234,17 +234,17 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center pt-28">
         <Loader2 className="h-12 w-12 animate-spin text-red-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white pt-20 pb-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="text-4xl font-bold mb-2">Hesap Ayarları</h1>
-        <p className="text-gray-400 mb-8">Hesap bilgilerinizi yönetin</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white pt-28 pb-12">
+      <div className="container mx-auto px-4 sm:px-6 max-w-4xl">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-2">Hesap Ayarları</h1>
+        <p className="text-sm sm:text-base text-gray-400 mb-8">Hesap bilgilerinizi yönetin</p>
 
         <div className="space-y-6">
           {/* Profil Ayarları */}

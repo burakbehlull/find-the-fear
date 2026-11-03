@@ -241,7 +241,7 @@ export default function MovieDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-4 text-gray-400">Yükleniyor...</p>
@@ -252,7 +252,7 @@ export default function MovieDetailPage() {
 
   if (!movie) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
         <div className="text-center">
           <p className="text-gray-400 text-xl">Film bulunamadı</p>
           <Link href="/library">
@@ -264,7 +264,7 @@ export default function MovieDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Film Detay Kartı */}
         <Card className="bg-gray-800/50 border-gray-700 mb-6">

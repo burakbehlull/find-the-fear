@@ -78,7 +78,7 @@ export default function SuggestMoviePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28 p-6">
       <div className="max-w-3xl mx-auto">
         <Button
           onClick={() => router.back()}

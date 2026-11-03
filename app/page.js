@@ -33,18 +33,18 @@ export default function HomePage() {
           <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-[#9d4edd]/20 rounded-full mix-blend-screen filter blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
 
-        <div className="container mx-auto px-6 relative z-20 pt-32 pb-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center max-w-7xl mx-auto">
+        <div className="container mx-auto px-4 sm:px-6 relative z-20 pt-24 sm:pt-32 pb-12 sm:pb-20">
+          <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center max-w-7xl mx-auto">
             {/* Left Side - Content */}
             <div>
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-[#8b7a9e]/30 mb-8">
-                <Sparkles className="h-4 w-4 text-[#b8a8c8]" />
-                <span className="text-sm font-light text-[#b8a8c8]">The Best Film Recommendation AI</span>
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full glass border border-[#8b7a9e]/30 mb-6 sm:mb-8">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-[#b8a8c8]" />
+                <span className="text-xs sm:text-sm font-light text-[#b8a8c8]">The Best Film Recommendation AI</span>
               </div>
 
               {/* Main Heading */}
-              <h1 className="text-6xl md:text-7xl font-light mb-6 leading-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light mb-4 sm:mb-6 leading-tight">
                 Find
                 <br />
                 <span className="text-gradient font-normal">The Fear</span>

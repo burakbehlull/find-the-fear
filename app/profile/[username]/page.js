@@ -202,7 +202,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-4 text-gray-400">Yükleniyor...</p>
@@ -213,7 +213,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
         <div className="text-center">
           <p className="text-gray-400 text-xl">Kullanıcı bulunamadı</p>
           <Link href="/dashboard">
@@ -225,13 +225,13 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-20 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28 px-4 sm:px-6 pb-6">
       <div className="max-w-6xl mx-auto">
         {/* Profil Header */}
         <Card className="bg-gray-800/50 border-gray-700 mb-6">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-6">
-              <div className="w-24 h-24 bg-gray-700 rounded-full flex items-center justify-center text-4xl">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-700 rounded-full flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0">
                 {profile.profileImage ? (
                   <img
                     src={profile.profileImage}
@@ -242,10 +242,10 @@ export default function ProfilePage() {
                   <span className="text-gray-300">{profile.username[0].toUpperCase()}</span>
                 )}
               </div>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-white mb-2">@{profile.username}</h1>
-                {profile.bio && <p className="text-gray-300 mb-3">{profile.bio}</p>}
-                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
+              <div className="flex-1 text-center sm:text-left w-full">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">@{profile.username}</h1>
+                {profile.bio && <p className="text-sm sm:text-base text-gray-300 mb-3">{profile.bio}</p>}
+                <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400">
                   <div>
                     <span className="font-semibold text-white">{profile.movieCount}</span> Film
                   </div>
@@ -262,8 +262,8 @@ export default function ProfilePage() {
                 </div>
               </div>
               {profile.isOwnProfile && (
-                <Link href="/settings">
-                  <Button variant="outline" className="bg-gray-700 border-gray-600 hover:bg-gray-600">
+                <Link href="/settings" className="w-full sm:w-auto mt-4 sm:mt-0">
+                  <Button variant="outline" className="w-full sm:w-auto bg-gray-700 border-gray-600 hover:bg-gray-600">
                     <Edit2 className="h-4 w-4 mr-2" />
                     Hesap Ayarları
                   </Button>

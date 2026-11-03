@@ -55,7 +55,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-20">
+      <div className="min-h-screen flex items-center justify-center pt-28">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
           <p className="mt-4 text-gray-400">Yükleniyor...</p>
@@ -65,18 +65,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28 px-4 sm:px-6 pb-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
             Hoş Geldin, {user?.username}! 👻
           </h1>
-          <p className="text-gray-400">Korku dünyasına hoş geldin. Ne izleyeceksin bugün?</p>
+          <p className="text-sm sm:text-base text-gray-400">Korku dünyasına hoş geldin. Ne izleyeceksin bugün?</p>
         </div>
 
         {/* İstatistik Kartları */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-200">Toplam Film</CardTitle>
