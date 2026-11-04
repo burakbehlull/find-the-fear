@@ -14,6 +14,7 @@ export default function RecommendationsPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [useWatchHistory, setUseWatchHistory] = useState(false);
   const [useCustomRequest, setUseCustomRequest] = useState(false);
@@ -39,6 +40,7 @@ export default function RecommendationsPage() {
   const getRecommendations = async () => {
     setLoading(true);
     setError('');
+    setRecommendations([]); // Yeni öneri alırken eskilerini temizle
 
     try {
       const response = await fetch('/api/recommendations', {
@@ -62,6 +64,43 @@ export default function RecommendationsPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getMoreRecommendations = async () => {
+    setLoadingMore(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          useWatchHistory,
+          customRequest: useCustomRequest ? customRequest : null,
+          excludeTitles: recommendations.map(r => r.title), // Zaten önerilen filmleri gönder
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Daha fazla öneri alınamadı');
+      }
+
+      const newRecommendations = data.recommendations || [];
+      
+      // Mevcut önerilerin altına ekle (duplicate kontrolü)
+      const existingTitles = recommendations.map(r => r.title.toLowerCase());
+      const filteredNew = newRecommendations.filter(
+        r => !existingTitles.includes(r.title.toLowerCase())
+      );
+      
+      setRecommendations([...recommendations, ...filteredNew]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -273,6 +312,32 @@ export default function RecommendationsPage() {
                     )}
                   </div>
                 ))}
+              </div>
+
+              {/* Daha Fazla Öner Butonu */}
+              <div className="mt-8 text-center">
+                <Button
+                  onClick={getMoreRecommendations}
+                  disabled={loadingMore}
+                  variant="outline"
+                  size="lg"
+                  className="bg-gray-800/50 border-gray-700 hover:bg-gray-700 hover:border-gray-600 px-8"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Daha Fazla Getiriliyor...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Daha Fazla Öner
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-gray-500 mt-3 font-light">
+                  Aynı kriterlerle 5 film daha önerilecek
+                </p>
               </div>
             </div>
           )}
