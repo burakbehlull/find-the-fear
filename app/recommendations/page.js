@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, TrendingUp, Film, MessageSquare } from 'lucide-react';
+import { Sparkles, TrendingUp, Film, MessageSquare, ExternalLink } from 'lucide-react';
 
 export default function RecommendationsPage() {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,6 +19,22 @@ export default function RecommendationsPage() {
   const [useCustomRequest, setUseCustomRequest] = useState(false);
   const [customRequest, setCustomRequest] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
+
+  useEffect(() => {
+    fetchCurrentUser();
+  }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentUser(data.user);
+      }
+    } catch (error) {
+      console.error('User fetch error:', error);
+    }
+  };
 
   const getRecommendations = async () => {
     setLoading(true);
@@ -82,21 +102,36 @@ export default function RecommendationsPage() {
                 </label>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  id="custom-request"
-                  checked={useCustomRequest}
-                  onCheckedChange={(checked) => {
-                    setUseCustomRequest(checked);
-                    if (!checked) setCustomRequest('');
-                  }}
-                />
-                <label
-                  htmlFor="custom-request"
-                  className="text-sm font-light leading-none cursor-pointer"
-                >
-                  Özel İstek
-                </label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center space-x-3">
+                  <Checkbox
+                    id="custom-request"
+                    checked={useCustomRequest}
+                    onCheckedChange={(checked) => {
+                      setUseCustomRequest(checked);
+                      if (!checked) setCustomRequest('');
+                    }}
+                  />
+                  <label
+                    htmlFor="custom-request"
+                    className="text-sm font-light leading-none cursor-pointer"
+                  >
+                    Özel İstek
+                  </label>
+                </div>
+                
+                {currentUser && (
+                  <Link href={`/profile/${currentUser.username}`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-gray-800/50 border-gray-700 hover:bg-gray-700 hover:border-gray-600 text-xs transition-all"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1.5" />
+                      İzlediklerime Git
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {useCustomRequest && (
