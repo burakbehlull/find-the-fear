@@ -98,6 +98,16 @@ const UserSchema = new mongoose.Schema({
       default: Date.now,
     },
   }],
+  doNotRecommend: [{
+    title: {
+      type: String,
+      required: true,
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
   createdAt: {
     type: Date,
     default: Date.now,

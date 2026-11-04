@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, TrendingUp, Film, MessageSquare, ExternalLink } from 'lucide-react';
+import { Sparkles, TrendingUp, Film, MessageSquare, ExternalLink, Ban } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function RecommendationsPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function RecommendationsPage() {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [blockingMovies, setBlockingMovies] = useState({}); // { "Movie Title": true/false }
   const [error, setError] = useState('');
   const [useWatchHistory, setUseWatchHistory] = useState(false);
   const [useCustomRequest, setUseCustomRequest] = useState(false);
@@ -101,6 +103,37 @@ export default function RecommendationsPage() {
       setError(err.message);
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const handleDoNotRecommend = async (movieTitle) => {
+    // İşlem sırasında buton disabled
+    setBlockingMovies(prev => ({ ...prev, [movieTitle]: true }));
+
+    try {
+      const response = await fetch('/api/user/do-not-recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: movieTitle }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('✅ Film "önerme" listenize eklendi');
+        
+        // Listeden kaldır (UI'dan gizle)
+        setRecommendations(recommendations.filter(m => m.title !== movieTitle));
+      } else {
+        toast.error(data.message || '❌ İşlem başarısız');
+        // Hata durumunda butonu yeniden aktif et
+        setBlockingMovies(prev => ({ ...prev, [movieTitle]: false }));
+      }
+    } catch (error) {
+      console.error('Do not recommend error:', error);
+      toast.error('❌ Bir hata oluştu');
+      // Hata durumunda butonu yeniden aktif et
+      setBlockingMovies(prev => ({ ...prev, [movieTitle]: false }));
     }
   };
 
@@ -284,7 +317,7 @@ export default function RecommendationsPage() {
                 {recommendations.map((movie, index) => (
                   <div 
                     key={index} 
-                    className="glass rounded-2xl p-6 hover:bg-white/10 transition-all hover:-translate-y-1"
+                    className="glass rounded-2xl p-6 hover:bg-white/10 transition-all hover:-translate-y-1 relative"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <h3 className="text-xl font-light">
@@ -301,7 +334,7 @@ export default function RecommendationsPage() {
                       {movie.description}
                     </p>
                     {movie.reason && (
-                      <div className="glass p-3 rounded-xl">
+                      <div className="glass p-3 rounded-xl mb-3">
                         <p className="text-xs text-gray-500 font-light mb-1">
                           Neden önerildi?
                         </p>
@@ -310,6 +343,27 @@ export default function RecommendationsPage() {
                         </p>
                       </div>
                     )}
+                    
+                    {/* Önerme Butonu */}
+                    <Button
+                      onClick={() => handleDoNotRecommend(movie.title)}
+                      disabled={blockingMovies[movie.title]}
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-red-900/20 border-red-800/50 hover:bg-red-900/40 hover:border-red-700 text-red-400 transition-all"
+                    >
+                      {blockingMovies[movie.title] ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-400 mr-2"></div>
+                          İşleniyor...
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="h-3 w-3 mr-2" />
+                          Önerme
+                        </>
+                      )}
+                    </Button>
                   </div>
                 ))}
               </div>

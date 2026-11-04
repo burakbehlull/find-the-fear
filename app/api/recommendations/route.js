@@ -37,12 +37,14 @@ export async function POST(request) {
     }
 
     const watchedMovies = user.watchedMovies || [];
+    const doNotRecommendList = (user.doNotRecommend || []).map(item => item.title);
 
     const recommendations = await getMovieRecommendations(
       watchedMovies,
       useWatchHistory,
       customRequest || null,
-      excludeTitles || []
+      excludeTitles || [],
+      doNotRecommendList
     );
 
     const watchedNormalized = watchedMovies.map(m => normalizeTitle(m.title));
