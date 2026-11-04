@@ -4,13 +4,16 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Sparkles, TrendingUp, Film } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Sparkles, TrendingUp, Film, MessageSquare } from 'lucide-react';
 
 export default function RecommendationsPage() {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [useWatchHistory, setUseWatchHistory] = useState(false);
+  const [useCustomRequest, setUseCustomRequest] = useState(false);
+  const [customRequest, setCustomRequest] = useState('');
   const [hasGenerated, setHasGenerated] = useState(false);
 
   const getRecommendations = async () => {
@@ -21,7 +24,10 @@ export default function RecommendationsPage() {
       const response = await fetch('/api/recommendations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ useWatchHistory }),
+        body: JSON.stringify({ 
+          useWatchHistory,
+          customRequest: useCustomRequest ? customRequest : null,
+        }),
       });
 
       const data = await response.json();
@@ -75,9 +81,46 @@ export default function RecommendationsPage() {
                   İzlediklerime göre öner
                 </label>
               </div>
+
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  id="custom-request"
+                  checked={useCustomRequest}
+                  onCheckedChange={(checked) => {
+                    setUseCustomRequest(checked);
+                    if (!checked) setCustomRequest('');
+                  }}
+                />
+                <label
+                  htmlFor="custom-request"
+                  className="text-sm font-light leading-none cursor-pointer"
+                >
+                  Özel İstek
+                </label>
+              </div>
+
+              {useCustomRequest && (
+                <div className="ml-7 space-y-3 animate-in slide-in-from-top-2 duration-300">
+                  <label className="text-sm text-gray-400 font-light">
+                    Özel isteğinizi yazın (örn: "kan içermesin ama psikolojik korku olsun")
+                  </label>
+                  <Textarea
+                    value={customRequest}
+                    onChange={(e) => setCustomRequest(e.target.value)}
+                    placeholder="Örnek: Korku dolu ama kan sahneleri olmayan filmler istiyorum..."
+                    className="bg-gray-900/50 border-gray-700 text-white min-h-[100px] resize-none"
+                  />
+                </div>
+              )}
               
               <p className="text-sm text-gray-400 font-light">
-                {useWatchHistory ? (
+                {useCustomRequest && customRequest ? (
+                  <>
+                    <MessageSquare className="inline h-4 w-4 mr-1 text-purple-400" />
+                    Özel isteğinize göre filmler önerilecek
+                    {useWatchHistory && ' ve izledikleriniz de dikkate alınacak'}
+                  </>
+                ) : useWatchHistory ? (
                   <>
                     <TrendingUp className="inline h-4 w-4 mr-1 text-purple-400" />
                     İzlediğiniz filmlere göre benzer türde filmler önerilecek
@@ -92,7 +135,7 @@ export default function RecommendationsPage() {
 
               <Button 
                 onClick={getRecommendations} 
-                disabled={loading}
+                disabled={loading || (useCustomRequest && !customRequest.trim())}
                 className="w-full bg-white text-black hover:bg-gray-200 font-light rounded-full"
                 size="lg"
               >
@@ -131,10 +174,37 @@ export default function RecommendationsPage() {
                 <h2 className="text-3xl font-light">
                   Sizin İçin Öneriler
                 </h2>
-                <span className="text-sm text-gray-400 font-light">
-                  {useWatchHistory ? '🎯 İzlediklerinize göre' : '🌟 Genel öneriler'}
-                </span>
+                <div className="flex items-center gap-2">
+                  {useCustomRequest && customRequest && (
+                    <span className="text-xs glass px-3 py-1.5 rounded-full text-purple-400 border border-purple-500/30">
+                      <MessageSquare className="inline h-3 w-3 mr-1" />
+                      Özel İstek
+                    </span>
+                  )}
+                  {useWatchHistory && (
+                    <span className="text-xs glass px-3 py-1.5 rounded-full text-green-400 border border-green-500/30">
+                      🎯 İzlediklerinize göre
+                    </span>
+                  )}
+                  {!useWatchHistory && !useCustomRequest && (
+                    <span className="text-xs glass px-3 py-1.5 rounded-full">
+                      🌟 Genel öneriler
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {useCustomRequest && customRequest && (
+                <div className="glass rounded-xl p-4 mb-6 border border-purple-500/20">
+                  <div className="flex items-start gap-3">
+                    <MessageSquare className="h-5 w-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-400 font-light mb-1">Özel İsteğiniz:</p>
+                      <p className="text-white font-light">{customRequest}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {recommendations.map((movie, index) => (

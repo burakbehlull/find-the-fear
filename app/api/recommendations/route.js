@@ -25,7 +25,7 @@ export async function POST(request) {
       );
     }
 
-    const { useWatchHistory } = await request.json();
+    const { useWatchHistory, customRequest } = await request.json();
 
     const user = await User.findById(userId);
 
@@ -40,7 +40,8 @@ export async function POST(request) {
 
     const recommendations = await getMovieRecommendations(
       watchedMovies,
-      useWatchHistory
+      useWatchHistory,
+      customRequest || null
     );
 
     const watchedNormalized = watchedMovies.map(m => normalizeTitle(m.title));
