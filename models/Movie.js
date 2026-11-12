@@ -1,21 +1,27 @@
 import mongoose from 'mongoose';
 import slugify from 'slugify';
 
-// Kütüphane filmleri için ana model
+// Kütüphane içerikleri için ana model (Film + Dizi)
 const LibraryMovieSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: [true, 'Film adı gerekli'],
+    required: [true, 'İçerik adı gerekli'],
     trim: true,
   },
   slug: {
     type: String,
     unique: true,
-    sparse: true, // null değerlere izin ver ama unique olanlar olsun
+    sparse: true,
   },
   year: {
     type: Number,
     required: [true, 'Yıl gerekli'],
+  },
+  type: {
+    type: String,
+    enum: ['film', 'series'],
+    default: 'film',
+    required: true,
   },
   series: {
     type: String,
@@ -56,9 +62,61 @@ const LibraryMovieSchema = new mongoose.Schema({
   cast: [{
     type: String,
   }],
+  // Film-specific (series için null/undefined)
   duration: {
     type: Number, // dakika cinsinden
     default: null,
+  },
+  // Series-specific (film için null/empty)
+  seasons: [{
+    seasonNumber: {
+      type: Number,
+      required: true,
+    },
+    episodeCount: {
+      type: Number,
+      required: true,
+    },
+    releaseYear: {
+      type: Number,
+    },
+    description: {
+      type: String,
+      default: '',
+    },
+    episodes: [{
+      episodeNumber: {
+        type: Number,
+        required: true,
+      },
+      title: {
+        type: String,
+        default: '', // Bölüm başlığı (opsiyonel)
+      },
+      description: {
+        type: String,
+        default: '',
+      },
+      duration: {
+        type: Number, // dakika
+      },
+      airDate: {
+        type: Date,
+      },
+    }],
+  }],
+  totalSeasons: {
+    type: Number,
+    default: 0,
+  },
+  totalEpisodes: {
+    type: Number,
+    default: 0,
+  },
+  seriesStatus: {
+    type: String,
+    enum: ['ongoing', 'completed', 'cancelled'],
+    default: 'completed',
   },
   // İstatistikler
   addedBy: {
@@ -102,6 +160,15 @@ LibraryMovieSchema.pre('save', function(next) {
     });
     this.slug = baseSlug;
   }
+  
+  // Dizi ise totalSeasons ve totalEpisodes hesapla
+  if (this.type === 'series' && this.seasons && this.seasons.length > 0) {
+    this.totalSeasons = this.seasons.length;
+    this.totalEpisodes = this.seasons.reduce((sum, season) => {
+      return sum + (season.episodeCount || 0);
+    }, 0);
+  }
+  
   next();
 });
 

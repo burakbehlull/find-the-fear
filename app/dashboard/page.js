@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Film, Star, TrendingUp, Library, User, Settings, Sparkles, Bookmark } from 'lucide-react';
+import { Film, Star, TrendingUp, Library, User, Settings, Sparkles, Bookmark, Tv } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const GENRE_NAMES = {
@@ -79,12 +79,25 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-200">Toplam Film</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-200">Toplam İçerik</CardTitle>
               <Film className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">{stats?.totalMovies || 0}</div>
-              <p className="text-xs text-gray-400 mt-1">İzlediğin korku filmi</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {stats?.totalFilms || 0} film • {stats?.totalSeries || 0} dizi
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-200">Bölümler</CardTitle>
+              <Tv className="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-white">{stats?.totalEpisodesWatched || 0}</div>
+              <p className="text-xs text-gray-400 mt-1">İzlenen dizi bölümü</p>
             </CardContent>
           </Card>
 
@@ -107,24 +120,10 @@ export default function DashboardPage() {
               <TrendingUp className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-lg font-bold text-white">
                 {stats?.favoriteGenre ? GENRE_NAMES[stats.favoriteGenre] : '-'}
               </div>
               <p className="text-xs text-gray-400 mt-1">En çok izlediğin</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gray-800/50 border-gray-700">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-200">Profil</CardTitle>
-              <User className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <Link href={`/profile/${user?.username}`}>
-                <Button variant="outline" size="sm" className="w-full mt-1 bg-gray-700 border-gray-600 hover:bg-gray-600">
-                  Profilimi Gör
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         </div>

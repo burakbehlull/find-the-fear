@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Film, Users, AlertCircle, CheckCircle, XCircle, ExternalLink, Plus, Trash2, Upload } from 'lucide-react';
+import { Film, Users, AlertCircle, CheckCircle, XCircle, ExternalLink, Plus, Trash2, Upload, Tv } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -49,7 +49,8 @@ export default function AdminPage() {
   const [deletingMovieId, setDeletingMovieId] = useState(null);
   const [updatingRoleId, setUpdatingRoleId] = useState(null);
   
-  // Film ekleme formu
+  // Film/Dizi ekleme formu
+  const [contentType, setContentType] = useState('film'); // 'film' veya 'series'
   const [movieForm, setMovieForm] = useState({
     title: '',
     year: '',
@@ -62,6 +63,9 @@ export default function AdminPage() {
     imdbRating: '',
     imdbLink: '',
     duration: '',
+    // Dizi için
+    seriesStatus: 'completed',
+    seasons: [],
   });
 
   // JSON bulk import
@@ -182,9 +186,23 @@ export default function AdminPage() {
   const handleAddMovie = async (e) => {
     e.preventDefault();
 
+    // Temel validasyon
     if (!movieForm.title || !movieForm.year || movieForm.genres.length === 0 || !movieForm.description) {
       toast.error('Lütfen gerekli alanları doldurun');
       return;
+    }
+
+    // Dizi için sezon kontrolü
+    if (contentType === 'series') {
+      if (!movieForm.seasons || movieForm.seasons.length === 0) {
+        toast.error('En az 1 sezon ekleyin!');
+        return;
+      }
+      const invalidSeason = movieForm.seasons.find(s => !s.episodeCount || s.episodeCount < 1);
+      if (invalidSeason) {
+        toast.error(`Sezon ${invalidSeason.seasonNumber} için bölüm sayısı girilmeli!`);
+        return;
+      }
     }
 
     try {
@@ -194,16 +212,22 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...movieForm,
+          type: contentType,
           year: parseInt(movieForm.year),
           imdbRating: movieForm.imdbRating ? parseFloat(movieForm.imdbRating) : null,
-          duration: movieForm.duration ? parseInt(movieForm.duration) : null,
+          duration: contentType === 'film' && movieForm.duration ? parseInt(movieForm.duration) : null,
+          // Dizi için
+          ...(contentType === 'series' && {
+            seasons: movieForm.seasons,
+            seriesStatus: movieForm.seriesStatus,
+          }),
         }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        toast.success('Film başarıyla eklendi!');
+        toast.success(`${contentType === 'film' ? 'Film' : 'Dizi'} başarıyla eklendi!`);
         setShowAddMovie(false);
         setMovieForm({
           title: '',
@@ -217,14 +241,17 @@ export default function AdminPage() {
           imdbRating: '',
           imdbLink: '',
           duration: '',
+          seriesStatus: 'completed',
+          seasons: [],
         });
+        setContentType('film');
         fetchData();
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      console.error('Film ekleme hatası:', error);
-      toast.error('Film eklenirken hata oluştu');
+      console.error('İçerik ekleme hatası:', error);
+      toast.error(`${contentType === 'film' ? 'Film' : 'Dizi'} eklenirken hata oluştu`);
     } finally {
       setAddingMovie(false);
     }
@@ -400,14 +427,28 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Film Ekle ve Listele Butonları */}
+        {/* Film/Dizi Ekle ve Listele Butonları */}
         <div className="mb-6 flex flex-wrap gap-3">
           <Button
-            onClick={() => setShowAddMovie(!showAddMovie)}
+            onClick={() => {
+              setShowAddMovie(!showAddMovie);
+              setContentType('film');
+            }}
             className="bg-green-600 hover:bg-green-700"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            {showAddMovie ? 'Formu Kapat' : 'Yeni Film Ekle'}
+            <Film className="h-4 w-4 mr-2" />
+            {showAddMovie && contentType === 'film' ? 'Formu Kapat' : 'Yeni Film Ekle'}
+          </Button>
+
+          <Button
+            onClick={() => {
+              setShowAddMovie(!showAddMovie);
+              setContentType('series');
+            }}
+            className="bg-teal-600 hover:bg-teal-700"
+          >
+            <Tv className="h-4 w-4 mr-2" />
+            {showAddMovie && contentType === 'series' ? 'Formu Kapat' : 'Yeni Dizi Ekle'}
           </Button>
           
           <Button
@@ -415,7 +456,7 @@ export default function AdminPage() {
             className="bg-purple-600 hover:bg-purple-700"
           >
             <Upload className="h-4 w-4 mr-2" />
-            {showBulkImport ? 'JSON Import Kapat' : 'Çoklu Film Ekle (JSON)'}
+            {showBulkImport ? 'JSON Import Kapat' : 'Çoklu Ekle (JSON)'}
           </Button>
           
           <Button
@@ -423,7 +464,7 @@ export default function AdminPage() {
             className="bg-blue-600 hover:bg-blue-700"
           >
             <Film className="h-4 w-4 mr-2" />
-            {showMovieList ? 'Listeyi Gizle' : `Tüm Filmler (${movies.length})`}
+            {showMovieList ? 'Listeyi Gizle' : `Tüm İçerikler (${movies.length})`}
           </Button>
 
           {user?.isOwner && (
@@ -437,17 +478,32 @@ export default function AdminPage() {
           )}
         </div>
 
-        {/* Film Ekleme Formu */}
+        {/* Film/Dizi Ekleme Formu */}
         {showAddMovie && (
           <Card className="bg-gray-800/50 border-gray-700 mb-6">
             <CardHeader>
-              <CardTitle className="text-white">Kütüphaneye Film Ekle</CardTitle>
+              <CardTitle className="text-white flex items-center gap-2">
+                {contentType === 'film' ? (
+                  <><Film className="h-5 w-5" /> Kütüphaneye Film Ekle</>
+                ) : (
+                  <><Tv className="h-5 w-5" /> Kütüphaneye Dizi Ekle</>
+                )}
+              </CardTitle>
               <CardDescription className="text-gray-400">
-                Yeni bir film direkt olarak kütüphaneye ekleyin
+                Yeni bir {contentType === 'film' ? 'film' : 'dizi'} direkt olarak kütüphaneye ekleyin
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddMovie} className="space-y-4">
+                
+                {/* İçerik Tipi Göstergesi */}
+                <div className="flex items-center gap-2 p-3 bg-gray-700/50 rounded-lg">
+                  <span className="text-sm text-gray-400">İçerik Tipi:</span>
+                  <span className="font-semibold text-white">
+                    {contentType === 'film' ? '🎬 Film' : '📺 Dizi'}
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -545,7 +601,7 @@ export default function AdminPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Süre (dakika)
+                      Süre (dakika) {contentType === 'film' && '*'}
                     </label>
                     <Input
                       type="number"
@@ -553,9 +609,151 @@ export default function AdminPage() {
                       onChange={(e) => setMovieForm({ ...movieForm, duration: e.target.value })}
                       className="bg-gray-700 border-gray-600 text-white"
                       placeholder="115"
+                      disabled={contentType === 'series'}
                     />
+                    {contentType === 'series' && (
+                      <p className="text-xs text-gray-500 mt-1">Diziler için süre bölüm bazında girilir</p>
+                    )}
                   </div>
                 </div>
+
+                {/* DİZİ İÇİN ÖZEL ALANLAR */}
+                {contentType === 'series' && (
+                  <div className="border-t border-gray-600 pt-6 space-y-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Tv className="h-5 w-5" />
+                      Dizi Bilgileri
+                    </h3>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Dizi Durumu *
+                      </label>
+                      <select
+                        value={movieForm.seriesStatus}
+                        onChange={(e) => setMovieForm({ ...movieForm, seriesStatus: e.target.value })}
+                        className="w-full bg-gray-700 border-gray-600 text-white rounded-md px-3 py-2"
+                      >
+                        <option value="completed">Tamamlandı</option>
+                        <option value="ongoing">Devam Ediyor</option>
+                        <option value="cancelled">İptal Edildi</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-sm font-medium text-gray-300">
+                          Sezonlar * (En az 1 sezon ekleyin)
+                        </label>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const newSeason = {
+                              seasonNumber: (movieForm.seasons?.length || 0) + 1,
+                              episodeCount: 0,
+                              releaseYear: movieForm.year || new Date().getFullYear(),
+                              description: ''
+                            };
+                            setMovieForm({
+                              ...movieForm,
+                              seasons: [...(movieForm.seasons || []), newSeason]
+                            });
+                          }}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Sezon Ekle
+                        </Button>
+                      </div>
+
+                      {movieForm.seasons && movieForm.seasons.length > 0 ? (
+                        <div className="space-y-3">
+                          {movieForm.seasons.map((season, index) => (
+                            <div key={index} className="bg-gray-700/50 rounded-lg p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-semibold text-white">Sezon {season.seasonNumber}</h4>
+                                <Button
+                                  type="button"
+                                  onClick={() => {
+                                    const newSeasons = movieForm.seasons.filter((_, i) => i !== index);
+                                    setMovieForm({ ...movieForm, seasons: newSeasons });
+                                  }}
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-red-600/20 border-red-600 text-red-400 hover:bg-red-600/40"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="text-xs text-gray-400">Bölüm Sayısı *</label>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={season.episodeCount}
+                                    onChange={(e) => {
+                                      const newSeasons = [...movieForm.seasons];
+                                      newSeasons[index].episodeCount = parseInt(e.target.value) || 0;
+                                      setMovieForm({ ...movieForm, seasons: newSeasons });
+                                    }}
+                                    className="bg-gray-600 border-gray-500 text-white mt-1"
+                                    placeholder="8"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="text-xs text-gray-400">Yayın Yılı</label>
+                                  <Input
+                                    type="number"
+                                    value={season.releaseYear}
+                                    onChange={(e) => {
+                                      const newSeasons = [...movieForm.seasons];
+                                      newSeasons[index].releaseYear = parseInt(e.target.value);
+                                      setMovieForm({ ...movieForm, seasons: newSeasons });
+                                    }}
+                                    className="bg-gray-600 border-gray-500 text-white mt-1"
+                                    placeholder={new Date().getFullYear()}
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <label className="text-xs text-gray-400">Sezon Açıklaması (Opsiyonel)</label>
+                                <Textarea
+                                  value={season.description}
+                                  onChange={(e) => {
+                                    const newSeasons = [...movieForm.seasons];
+                                    newSeasons[index].description = e.target.value;
+                                    setMovieForm({ ...movieForm, seasons: newSeasons });
+                                  }}
+                                  className="bg-gray-600 border-gray-500 text-white mt-1"
+                                  placeholder="Bu sezonda ne oldu..."
+                                  rows={2}
+                                />
+                              </div>
+                            </div>
+                          ))}
+
+                          <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-3">
+                            <p className="text-sm text-blue-300">
+                              📊 Toplam: {movieForm.seasons.length} Sezon, {' '}
+                              {movieForm.seasons.reduce((sum, s) => sum + (s.episodeCount || 0), 0)} Bölüm
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-700/30 rounded-lg p-6 text-center">
+                          <Tv className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                          <p className="text-sm text-gray-400">Henüz sezon eklenmedi</p>
+                          <p className="text-xs text-gray-500 mt-1">Yukarıdaki "Sezon Ekle" butonuna tıklayın</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -648,35 +846,47 @@ export default function AdminPage() {
             <CardContent className="space-y-4">
               {/* JSON Format Example */}
               <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                <h4 className="text-sm font-semibold text-gray-300 mb-2">📝 JSON Format Örneği:</h4>
+                <h4 className="text-sm font-semibold text-gray-300 mb-2">📝 JSON Format Örneği (Film & Dizi):</h4>
                 <pre className="text-xs text-gray-300 overflow-x-auto whitespace-pre-wrap">
 {`[
   {
+    "type": "film",
     "title": "The Ring",
     "year": 2002,
-    "series": "The Ring Serisi",
     "genres": ["psikolojik", "doğaüstü"],
-    "description": "Film açıklaması burada...",
+    "description": "Film açıklaması...",
     "director": "Gore Verbinski",
     "poster": "https://example.com/poster.jpg",
-    "imdbId": "tt0298130",
-    "imdbRating": 7.1,
-    "imdbLink": "https://www.imdb.com/title/tt0298130/",
-    "duration": 115
+    "duration": 115,
+    "imdbRating": 7.1
   },
   {
-    "title": "The Conjuring",
-    "year": 2013,
+    "type": "series",
+    "title": "Stranger Things",
+    "year": 2016,
     "genres": ["doğaüstü", "gerilim"],
-    "description": "İkinci film açıklaması...",
-    "director": "James Wan",
-    "duration": 112
+    "description": "80'lerde geçen doğaüstü olaylar...",
+    "seriesStatus": "ongoing",
+    "seasons": [
+      {
+        "seasonNumber": 1,
+        "episodeCount": 8,
+        "releaseYear": 2016
+      },
+      {
+        "seasonNumber": 2,
+        "episodeCount": 9,
+        "releaseYear": 2017
+      }
+    ]
   }
 ]`}
                 </pre>
                 <div className="mt-3 text-xs text-gray-400 space-y-1">
-                  <p>• <strong className="text-white">Zorunlu alanlar:</strong> title, year, genres (array), description</p>
-                  <p>• <strong className="text-white">Opsiyonel alanlar:</strong> series, director, poster, imdbId, imdbRating, imdbLink, duration</p>
+                  <p>• <strong className="text-white">Zorunlu (Hepsi):</strong> title, year, genres (array), description</p>
+                  <p>• <strong className="text-white">type:</strong> "film" (varsayılan) veya "series"</p>
+                  <p>• <strong className="text-white">Film için:</strong> duration (dakika)</p>
+                  <p>• <strong className="text-white">Dizi için:</strong> seasons array (seasonNumber, episodeCount), seriesStatus</p>
                   <p>• <strong className="text-white">Türler:</strong> komedi, psikolojik, vahşet, gerilim, gizem, doğaüstü, belgesel</p>
                 </div>
               </div>
@@ -735,7 +945,7 @@ export default function AdminPage() {
                   ) : (
                     <>
                       <Upload className="h-4 w-4 mr-2" />
-                      Filmleri Import Et
+                      İçerikleri Import Et
                     </>
                   )}
                 </Button>

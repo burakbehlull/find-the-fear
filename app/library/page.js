@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Filter, Plus, Star, Users, Film } from 'lucide-react';
+import { Search, Filter, Plus, Star, Users, Film, Tv } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const GENRES = [
@@ -34,6 +34,7 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState([]);
+  const [contentType, setContentType] = useState('all'); // 'all', 'film', 'series'
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState(null);
@@ -55,7 +56,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     fetchMovies();
-  }, [searchTerm, selectedGenres, sortBy]);
+  }, [searchTerm, selectedGenres, sortBy, contentType]);
 
   const fetchMovies = async () => {
     try {
@@ -66,6 +67,11 @@ export default function LibraryPage() {
         sortBy,
       });
 
+      // İçerik tipi filtresi ekle
+      if (contentType !== 'all') {
+        params.append('type', contentType);
+      }
+
       const res = await fetch(`/api/library/movies?${params}`);
       const data = await res.json();
 
@@ -73,8 +79,8 @@ export default function LibraryPage() {
         setMovies(data.movies);
       }
     } catch (error) {
-      console.error('Film yükleme hatası:', error);
-      toast.error('Filmler yüklenirken hata oluştu');
+      console.error('İçerik yükleme hatası:', error);
+      toast.error('İçerikler yüklenirken hata oluştu');
     } finally {
       setLoading(false);
     }
@@ -118,8 +124,12 @@ export default function LibraryPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">🎬 Film Kütüphanesi</h1>
-          <p className="text-gray-400">Tüm korku filmleri burada</p>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            {contentType === 'film' ? '🎬 Film Kütüphanesi' : contentType === 'series' ? '📺 Dizi Kütüphanesi' : '🎬 Korku Kütüphanesi'}
+          </h1>
+          <p className="text-gray-400">
+            {contentType === 'film' ? 'Tüm korku filmleri' : contentType === 'series' ? 'Tüm korku dizileri' : 'Tüm korku filmleri ve dizileri'}
+          </p>
         </div>
 
         {/* Arama ve Filtreler */}
@@ -159,19 +169,52 @@ export default function LibraryPage() {
           {/* Filtre Paneli */}
           {showFilters && (
             <Card className="bg-gray-800/50 border-gray-700 p-4">
-              <h3 className="text-white font-semibold mb-3">Türler</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {GENRES.map((genre) => (
-                  <div key={genre.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={genre.value}
-                      checked={selectedGenres.includes(genre.value)}
-                      onCheckedChange={() => handleGenreToggle(genre.value)}
-                      className="border-gray-600"
-                    />
-                    <label
-                      htmlFor={genre.value}
-                      className="text-sm text-gray-300 cursor-pointer"
+              <div className="space-y-4">
+                {/* İçerik Tipi Filtresi */}
+                <div>
+                  <h3 className="text-white font-semibold mb-3">İçerik Tipi</h3>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setContentType('all')}
+                      className={contentType === 'all' ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}
+                    >
+                      Tümü
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setContentType('film')}
+                      className={contentType === 'film' ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}
+                    >
+                      <Film className="h-3 w-3 mr-1" />
+                      Filmler
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setContentType('series')}
+                      className={contentType === 'series' ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}
+                    >
+                      <Tv className="h-3 w-3 mr-1" />
+                      Diziler
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Türler */}
+                <div>
+                  <h3 className="text-white font-semibold mb-3">Türler</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {GENRES.map((genre) => (
+                      <div key={genre.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={genre.value}
+                          checked={selectedGenres.includes(genre.value)}
+                          onCheckedChange={() => handleGenreToggle(genre.value)}
+                          className="border-gray-600"
+                        />
+                        <label
+                          htmlFor={genre.value}
+                          className="text-sm text-gray-300 cursor-pointer"
                     >
                       {genre.label}
                     </label>
@@ -194,15 +237,19 @@ export default function LibraryPage() {
           </div>
         )}
 
-        {/* Film Listesi */}
+        {/* İçerik Listesi */}
         {loading ? (
           <div className="text-center py-12 pt-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-            <p className="mt-4 text-gray-400">Filmler yükleniyor...</p>
+            <p className="mt-4 text-gray-400">
+              {contentType === 'film' ? 'Filmler' : contentType === 'series' ? 'Diziler' : 'İçerikler'} yükleniyor...
+            </p>
           </div>
         ) : movies.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">Film bulunamadı</p>
+            <p className="text-gray-400 text-lg">
+              {contentType === 'film' ? 'Film' : contentType === 'series' ? 'Dizi' : 'İçerik'} bulunamadı
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -232,12 +279,28 @@ export default function LibraryPage() {
                       {movie.title}
                     </h3>
                   </Link>
-                  <p className="text-sm text-gray-400 mb-2">{movie.year}</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-sm text-gray-400">{movie.year}</p>
+                    {movie.type === 'series' && (
+                      <span className="px-2 py-0.5 bg-blue-900/30 text-blue-300 rounded text-xs flex items-center gap-1">
+                        <Tv className="h-3 w-3" />
+                        Dizi
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Dizi ise sezon/bölüm bilgisi */}
+                  {movie.type === 'series' && movie.totalSeasons > 0 && (
+                    <p className="text-xs text-gray-500 mb-2">
+                      {movie.totalSeasons} Sezon • {movie.totalEpisodes} Bölüm
+                      {movie.seriesStatus === 'ongoing' && ' • Devam Ediyor'}
+                    </p>
+                  )}
                   
                   {/* Türler */}
                   {movie.genres && movie.genres.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {movie.genres.map((genre, index) => (
+                      {movie.genres.slice(0, 2).map((genre, index) => (
                         <span
                           key={index}
                           className="px-2 py-0.5 bg-red-900/30 text-red-300 rounded text-xs"

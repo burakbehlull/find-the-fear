@@ -4,7 +4,7 @@ import { LibraryMovie } from '@/models/Movie';
 import { verifyAuth } from '@/lib/auth';
 import slugify from 'slugify';
 
-// GET - Tüm onaylanmış filmleri getir (filtreleme ile)
+// GET - Tüm onaylanmış içerikleri getir (filtreleme ile)
 export async function GET(request) {
   try {
     await connectDB();
@@ -12,6 +12,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const genres = searchParams.get('genres')?.split(',').filter(Boolean) || [];
+    const type = searchParams.get('type'); // 'film' veya 'series'
     const minYear = parseInt(searchParams.get('minYear')) || null;
     const maxYear = parseInt(searchParams.get('maxYear')) || null;
     const minRating = parseFloat(searchParams.get('minRating')) || null;
@@ -30,6 +31,11 @@ export async function GET(request) {
 
     if (genres.length > 0) {
       query.genres = { $in: genres };
+    }
+
+    // İçerik tipi filtresi (film/series)
+    if (type === 'film' || type === 'series') {
+      query.type = type;
     }
 
     if (minYear || maxYear) {
@@ -74,15 +80,15 @@ export async function GET(request) {
       count: movies.length,
     });
   } catch (error) {
-    console.error('Film listesi hatası:', error);
+    console.error('İçerik listesi hatası:', error);
     return NextResponse.json(
-      { success: false, message: 'Film listesi alınamadı' },
+      { success: false, message: 'İçerik listesi alınamadı' },
       { status: 500 }
     );
   }
 }
 
-// POST - Yeni film ekle (sadece admin)
+// POST - Yeni film/dizi ekle (sadece admin)
 export async function POST(request) {
   try {
     const user = await verifyAuth(request);
@@ -96,13 +102,28 @@ export async function POST(request) {
     await connectDB();
 
     const body = await request.json();
-    const { title, year, series, genres, description, director, poster, imdbId, imdbRating, imdbLink, cast, duration } = body;
+    const { 
+      type, title, year, series, genres, description, director, poster, 
+      imdbId, imdbRating, imdbLink, cast, duration,
+      // Dizi için
+      seasons, seriesStatus
+    } = body;
 
     if (!title || !year || !genres || genres.length === 0 || !description) {
       return NextResponse.json(
         { success: false, message: 'Gerekli alanları doldurun' },
         { status: 400 }
       );
+    }
+
+    // Dizi ise sezon kontrolü
+    if (type === 'series') {
+      if (!seasons || seasons.length === 0) {
+        return NextResponse.json(
+          { success: false, message: 'Dizi için en az 1 sezon ekleyin' },
+          { status: 400 }
+        );
+      }
     }
 
     // Slug oluştur
@@ -112,10 +133,11 @@ export async function POST(request) {
       locale: 'tr'
     });
 
-    const movie = await LibraryMovie.create({
+    const contentData = {
       title,
       slug,
       year,
+      type: type || 'film',
       series: series || '',
       genres,
       description,
@@ -125,20 +147,32 @@ export async function POST(request) {
       imdbRating: imdbRating || null,
       imdbLink: imdbLink || '',
       cast: cast || [],
-      duration: duration || null,
       addedBy: user.userId,
       status: 'approved',
-    });
+    };
+
+    // Film ise duration ekle
+    if (type === 'film') {
+      contentData.duration = duration || null;
+    }
+
+    // Dizi ise seasons ekle
+    if (type === 'series') {
+      contentData.seasons = seasons || [];
+      contentData.seriesStatus = seriesStatus || 'completed';
+    }
+
+    const content = await LibraryMovie.create(contentData);
 
     return NextResponse.json({
       success: true,
-      message: 'Film başarıyla eklendi',
-      movie,
+      message: `${type === 'series' ? 'Dizi' : 'Film'} başarıyla eklendi`,
+      content,
     }, { status: 201 });
   } catch (error) {
-    console.error('Film ekleme hatası:', error);
+    console.error('İçerik ekleme hatası:', error);
     return NextResponse.json(
-      { success: false, message: 'Film eklenemedi' },
+      { success: false, message: 'İçerik eklenemedi: ' + error.message },
       { status: 500 }
     );
   }

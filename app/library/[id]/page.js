@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Star, Users, Calendar, Film as FilmIcon, Trash2, Heart, AlertTriangle } from 'lucide-react';
+import { Star, Users, Calendar, Film as FilmIcon, Trash2, Heart, AlertTriangle, Tv, ChevronDown, ChevronUp, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -32,6 +32,17 @@ export default function MovieDetailPage() {
   const [isSpoiler, setIsSpoiler] = useState(false);
   const [userRating, setUserRating] = useState(null);
   const [isInList, setIsInList] = useState(false);
+  
+  // Dizi için state'ler
+  const [expandedSeasons, setExpandedSeasons] = useState([1]); // Açık sezonlar
+  const [watchedEpisodes, setWatchedEpisodes] = useState([]); // İzlenen bölümler {season, episode}
+  const [showEpisodeModal, setShowEpisodeModal] = useState(null); // {season, episode, title}
+  const [episodeForm, setEpisodeForm] = useState({
+    watchedAt: new Date().toISOString().slice(0, 16),
+    watchedWith: '',
+    note: '',
+    rating: '',
+  });
 
   useEffect(() => {
     fetchData();
@@ -62,8 +73,8 @@ export default function MovieDetailPage() {
         setComments(commentsData.comments);
       }
 
-      // Kullanıcının bu filmi listesinde olup olmadığını ve puanını kontrol et
-      if (userRes.ok) {
+      // Kullanıcının bu içeriği listesinde olup olmadığını ve puanını kontrol et
+      if (userRes.ok && movieData.movie) {
         const userMoviesRes = await fetch('/api/user/movies');
         const userMoviesData = await userMoviesRes.json();
         if (userMoviesData.success) {
@@ -73,6 +84,11 @@ export default function MovieDetailPage() {
           if (userMovie) {
             setIsInList(true);
             setUserRating(userMovie.rating);
+            
+            // Dizi ise izlenen bölümleri yükle
+            if (movieData.movie.type === 'series' && userMovie.watchedEpisodes) {
+              setWatchedEpisodes(userMovie.watchedEpisodes);
+            }
           }
         }
       }
@@ -239,6 +255,142 @@ export default function MovieDetailPage() {
     }
   };
 
+  const handleWatchEpisode = async () => {
+    if (!showEpisodeModal) return;
+
+    try {
+      const res = await fetch('/api/user/watch-episode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          movieId: movie._id,
+          season: showEpisodeModal.season,
+          episode: showEpisodeModal.episode,
+          watchedAt: episodeForm.watchedAt,
+          watchedWith: episodeForm.watchedWith,
+          rating: episodeForm.rating ? parseFloat(episodeForm.rating) : undefined,
+          note: episodeForm.note,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Bölüm izlendi olarak işaretlendi!');
+        // Watched episodes'u güncelle
+        setWatchedEpisodes([
+          ...watchedEpisodes.filter(
+            (e) =>
+              !(e.season === showEpisodeModal.season && e.episode === showEpisodeModal.episode)
+          ),
+          {
+            season: showEpisodeModal.season,
+            episode: showEpisodeModal.episode,
+            watchedAt: episodeForm.watchedAt,
+            watchedWith: episodeForm.watchedWith,
+            rating: episodeForm.rating ? parseFloat(episodeForm.rating) : undefined,
+            note: episodeForm.note,
+          },
+        ]);
+        setShowEpisodeModal(null);
+        setEpisodeForm({
+          watchedAt: new Date().toISOString().slice(0, 16),
+          watchedWith: '',
+          note: '',
+          rating: '',
+        });
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('Bölüm izleme hatası:', error);
+      toast.error('Bölüm işaretlenirken hata oluştu');
+    }
+  };
+
+  const handleUnwatchEpisode = async (season, episode) => {
+    if (!confirm('Bu bölümü izlenmedi olarak işaretlemek istiyor musunuz?')) return;
+
+    try {
+      const res = await fetch('/api/user/watch-episode', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          movieId: movie._id,
+          season,
+          episode,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Bölüm izlenmedi olarak işaretlendi');
+        setWatchedEpisodes(
+          watchedEpisodes.filter((e) => !(e.season === season && e.episode === episode))
+        );
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('Bölüm kaldırma hatası:', error);
+      toast.error('İşlem yapılırken hata oluştu');
+    }
+  };
+
+  const handleBulkWatchSeason = async (seasonNumber, episodes) => {
+    if (!episodes || episodes.length === 0) {
+      toast.error('Bu sezonda bölüm bulunamadı');
+      return;
+    }
+
+    const unwatchedEpisodes = episodes.filter(
+      (ep) =>
+        !watchedEpisodes.some(
+          (we) => we.season === seasonNumber && we.episode === ep.episodeNumber
+        )
+    );
+
+    if (unwatchedEpisodes.length === 0) {
+      toast.error('Bu sezondaki tüm bölümler zaten izlendi');
+      return;
+    }
+
+    if (
+      !confirm(
+        `${unwatchedEpisodes.length} bölümü izlendi olarak işaretlemek istiyor musunuz?`
+      )
+    )
+      return;
+
+    try {
+      const res = await fetch('/api/user/watch-season', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          movieId: movie._id,
+          season: seasonNumber,
+          episodes: unwatchedEpisodes.map((ep) => ep.episodeNumber),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`${unwatchedEpisodes.length} bölüm izlendi olarak işaretlendi!`);
+        // Watched episodes'u güncelle
+        const newWatchedEpisodes = unwatchedEpisodes.map((ep) => ({
+          season: seasonNumber,
+          episode: ep.episodeNumber,
+          watchedAt: new Date().toISOString(),
+        }));
+        setWatchedEpisodes([...watchedEpisodes, ...newWatchedEpisodes]);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('Toplu izleme hatası:', error);
+      toast.error('İşlem yapılırken hata oluştu');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28">
@@ -377,6 +529,247 @@ export default function MovieDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Dizi İçin Sezon/Bölüm Listesi */}
+        {movie.type === 'series' && movie.seasons && movie.seasons.length > 0 && (
+          <Card className="bg-gray-800/50 border-gray-700 mb-6">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Tv className="h-6 w-6" />
+                Sezonlar & Bölümler
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {movie.seasons.map((season) => {
+                  const isExpanded = expandedSeasons.includes(season.seasonNumber);
+                  const seasonWatchedCount = watchedEpisodes.filter(
+                    (e) => e.season === season.seasonNumber
+                  ).length;
+                  const totalEpisodes = season.episodes?.length || season.episodeCount || 0;
+                  
+                  return (
+                    <div key={season.seasonNumber} className="bg-gray-700/50 rounded-lg overflow-hidden">
+                      {/* Sezon Başlığı */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <button
+                            onClick={() => {
+                              setExpandedSeasons(
+                                isExpanded
+                                  ? expandedSeasons.filter((s) => s !== season.seasonNumber)
+                                  : [...expandedSeasons, season.seasonNumber]
+                              );
+                            }}
+                            className="flex items-center gap-2 text-lg font-semibold text-white hover:text-red-400 transition-colors"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                            Sezon {season.seasonNumber}
+                          </button>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-400">
+                              {seasonWatchedCount}/{totalEpisodes} bölüm
+                            </span>
+                            {user && isInList && seasonWatchedCount < totalEpisodes && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleBulkWatchSeason(season.seasonNumber, season.episodes)}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                Tüm Sezonu İzledim
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {season.releaseYear && (
+                          <p className="text-sm text-gray-400">Yıl: {season.releaseYear}</p>
+                        )}
+                        {season.description && (
+                          <p className="text-sm text-gray-300 mt-2">{season.description}</p>
+                        )}
+                      </div>
+
+                      {/* Bölüm Listesi */}
+                      {isExpanded && season.episodes && season.episodes.length > 0 && (
+                        <div className="border-t border-gray-600">
+                          <div className="p-4 space-y-2">
+                            {season.episodes.map((episode) => {
+                              const watchedEpisode = watchedEpisodes.find(
+                                (e) =>
+                                  e.season === season.seasonNumber &&
+                                  e.episode === episode.episodeNumber
+                              );
+                              const isWatched = !!watchedEpisode;
+
+                              return (
+                                <div
+                                  key={episode.episodeNumber}
+                                  className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                                    isWatched ? 'bg-green-900/20' : 'bg-gray-600/30 hover:bg-gray-600/50'
+                                  }`}
+                                >
+                                  {/* Checkbox */}
+                                  {user && isInList && (
+                                    <button
+                                      onClick={() => {
+                                        if (isWatched) {
+                                          handleUnwatchEpisode(season.seasonNumber, episode.episodeNumber);
+                                        } else {
+                                          setShowEpisodeModal({
+                                            season: season.seasonNumber,
+                                            episode: episode.episodeNumber,
+                                            title: episode.title || `Bölüm ${episode.episodeNumber}`,
+                                          });
+                                        }
+                                      }}
+                                      className="mt-1"
+                                    >
+                                      {isWatched ? (
+                                        <CheckCircle className="h-5 w-5 text-green-400" />
+                                      ) : (
+                                        <div className="h-5 w-5 border-2 border-gray-400 rounded-full" />
+                                      )}
+                                    </button>
+                                  )}
+
+                                  {/* Bölüm Bilgileri */}
+                                  <div className="flex-1">
+                                    <div className="flex items-start justify-between">
+                                      <div>
+                                        <h4 className="text-white font-medium">
+                                          {episode.episodeNumber}.{' '}
+                                          {episode.title || `Bölüm ${episode.episodeNumber}`}
+                                        </h4>
+                                        {episode.description && (
+                                          <p className="text-sm text-gray-400 mt-1">
+                                            {episode.description}
+                                          </p>
+                                        )}
+                                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                          {episode.duration && <span>{episode.duration} dk</span>}
+                                          {episode.airDate && (
+                                            <span>{new Date(episode.airDate).toLocaleDateString('tr-TR')}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {isWatched && watchedEpisode.rating && (
+                                        <div className="flex items-center gap-1 text-yellow-500">
+                                          <Star className="h-4 w-4 fill-current" />
+                                          <span className="font-bold">{watchedEpisode.rating}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {isWatched && (
+                                      <div className="mt-2 text-xs text-gray-400">
+                                        {watchedEpisode.watchedAt && (
+                                          <p>
+                                            İzlenme:{' '}
+                                            {format(new Date(watchedEpisode.watchedAt), 'dd/MM/yyyy HH:mm')}
+                                          </p>
+                                        )}
+                                        {watchedEpisode.watchedWith && (
+                                          <p>Kiminle: {watchedEpisode.watchedWith}</p>
+                                        )}
+                                        {watchedEpisode.note && (
+                                          <p className="mt-1 text-gray-300">{watchedEpisode.note}</p>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Episode Watch Modal */}
+        {showEpisodeModal && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-xl font-bold text-white mb-4">
+                Sezon {showEpisodeModal.season} - {showEpisodeModal.title}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">İzlenme Tarihi</label>
+                  <input
+                    type="datetime-local"
+                    value={episodeForm.watchedAt}
+                    onChange={(e) => setEpisodeForm({ ...episodeForm, watchedAt: e.target.value })}
+                    className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Kiminle İzledin?</label>
+                  <input
+                    type="text"
+                    placeholder="İsteğe bağlı"
+                    value={episodeForm.watchedWith}
+                    onChange={(e) => setEpisodeForm({ ...episodeForm, watchedWith: e.target.value })}
+                    className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Puan (0-10)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    placeholder="İsteğe bağlı"
+                    value={episodeForm.rating}
+                    onChange={(e) => setEpisodeForm({ ...episodeForm, rating: e.target.value })}
+                    className="w-full bg-gray-700 border-gray-600 text-white rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Not</label>
+                  <Textarea
+                    placeholder="İsteğe bağlı"
+                    value={episodeForm.note}
+                    onChange={(e) => setEpisodeForm({ ...episodeForm, note: e.target.value })}
+                    className="bg-gray-700 border-gray-600 text-white"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={() => {
+                    setShowEpisodeModal(null);
+                    setEpisodeForm({
+                      watchedAt: new Date().toISOString().slice(0, 16),
+                      watchedWith: '',
+                      note: '',
+                      rating: '',
+                    });
+                  }}
+                  className="flex-1 bg-gray-600 hover:bg-gray-700"
+                >
+                  İptal
+                </Button>
+                <Button
+                  onClick={handleWatchEpisode}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  Kaydet
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Yorumlar */}
         <Card className="bg-gray-800/50 border-gray-700">

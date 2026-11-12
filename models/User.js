@@ -55,10 +55,16 @@ const UserSchema = new mongoose.Schema({
       ref: 'LibraryMovie',
       required: true,
     },
+    contentType: {
+      type: String,
+      enum: ['film', 'series'],
+      default: 'film',
+    },
     isPublic: {
       type: Boolean,
       default: true,
     },
+    // Film için
     rating: {
       type: Number,
       min: 0,
@@ -82,6 +88,62 @@ const UserSchema = new mongoose.Schema({
       type: String,
       trim: true,
     }],
+    // Dizi için - izlenen bölümler
+    watchedEpisodes: [{
+      season: {
+        type: Number,
+        required: true,
+      },
+      episode: {
+        type: Number,
+        required: true,
+      },
+      watchedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      watchedWith: [{
+        type: String,
+        trim: true,
+      }],
+      rating: {
+        type: Number,
+        min: 0,
+        max: 10,
+        default: null,
+      },
+      note: {
+        type: String,
+        maxlength: [500, 'Not en fazla 500 karakter olabilir'],
+        default: '',
+      },
+    }],
+    // Dizi progress (otomatik hesaplanan)
+    currentSeason: {
+      type: Number,
+      default: 1,
+    },
+    currentEpisode: {
+      type: Number,
+      default: 0,
+    },
+    totalWatchedEpisodes: {
+      type: Number,
+      default: 0,
+    },
+    isCompleted: {
+      type: Boolean,
+      default: false,
+    },
+    // Re-watch için
+    watchCount: {
+      type: Number,
+      default: 1,
+    },
+    lastWatchedAt: {
+      type: Date,
+      default: Date.now,
+    },
     addedAt: {
       type: Date,
       default: Date.now,

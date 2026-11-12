@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Film, Star, Calendar, Eye, EyeOff, Trash2, MessageSquare, Edit2, X } from 'lucide-react';
+import { Film, Star, Calendar, Eye, EyeOff, Trash2, MessageSquare, Edit2, X, Tv } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -321,13 +321,29 @@ export default function ProfilePage() {
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             <Link href={`/library/${movie.movieId.slug}`}>
-                              <h3 className="text-xl font-bold text-white hover:text-red-400">
+                              <h3 className="text-xl font-bold text-white hover:text-red-400 flex items-center gap-2">
+                                {movie.movieId.type === 'series' && <Tv className="h-5 w-5" />}
                                 {movie.movieId.title}
                               </h3>
                             </Link>
                             <p className="text-sm text-gray-400">
                               {movie.movieId.year} • {movie.movieId.genres?.map(g => GENRE_NAMES[g]).join(', ')}
                             </p>
+                            {/* Dizi için ilerleme göster */}
+                            {movie.movieId.type === 'series' && (
+                              <div className="mt-1 text-sm text-gray-400">
+                                {movie.totalWatchedEpisodes > 0 ? (
+                                  <span>
+                                    📺 {movie.totalWatchedEpisodes}/{movie.movieId.totalEpisodes || '?'} bölüm izlendi
+                                    {movie.currentSeason && movie.currentEpisode && (
+                                      <span className="ml-2">• Sezon {movie.currentSeason}, Bölüm {movie.currentEpisode}</span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span>📺 Henüz başlanmadı</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           {profile.isOwnProfile && (
                             <div className="flex gap-2">

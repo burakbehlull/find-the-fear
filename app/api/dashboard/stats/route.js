@@ -31,6 +31,12 @@ export async function GET(request) {
 
     // Kullanıcı istatistikleri
     const totalMovies = userData.watchedMovies.length;
+    const totalFilms = userData.watchedMovies.filter(m => m.movieId?.type === 'film').length;
+    const totalSeries = userData.watchedMovies.filter(m => m.movieId?.type === 'series').length;
+    const totalEpisodesWatched = userData.watchedMovies.reduce(
+      (sum, m) => sum + (m.totalWatchedEpisodes || 0),
+      0
+    );
     const ratedMovies = userData.watchedMovies.filter(m => m.rating !== null).length;
     const averageRating = ratedMovies > 0
       ? userData.watchedMovies.reduce((sum, m) => sum + (m.rating || 0), 0) / ratedMovies
@@ -71,6 +77,9 @@ export async function GET(request) {
       success: true,
       stats: {
         totalMovies,
+        totalFilms,
+        totalSeries,
+        totalEpisodesWatched,
         ratedMovies,
         averageRating: averageRating ? averageRating.toFixed(1) : null,
         favoriteGenre,

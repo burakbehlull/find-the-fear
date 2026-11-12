@@ -27,7 +27,7 @@ export async function POST(request) {
     // Validasyon
     if (!Array.isArray(movies) || movies.length === 0) {
       return NextResponse.json(
-        { success: false, message: 'Geçerli bir film listesi gönderilmedi' },
+        { success: false, message: 'Geçerli bir içerik listesi gönderilmedi' },
         { status: 400 }
       );
     }
@@ -41,61 +41,80 @@ export async function POST(request) {
       errors: [],
     };
 
-    // Her bir filmi işle
+    // Her bir içeriği işle
     for (let i = 0; i < movies.length; i++) {
-      const movieData = movies[i];
+      const contentData = movies[i];
 
       try {
         // Zorunlu alan kontrolü
-        if (!movieData.title || !movieData.year || !movieData.genres || !Array.isArray(movieData.genres) || movieData.genres.length === 0 || !movieData.description) {
+        if (!contentData.title || !contentData.year || !contentData.genres || !Array.isArray(contentData.genres) || contentData.genres.length === 0 || !contentData.description) {
           results.failed++;
-          results.errors.push(`Film ${i + 1}: Eksik zorunlu alanlar (title, year, genres, description)`);
+          results.errors.push(`İçerik ${i + 1}: Eksik zorunlu alanlar (title, year, genres, description)`);
           continue;
         }
 
+        const type = contentData.type || 'film';
+
+        // Dizi ise sezon kontrolü
+        if (type === 'series') {
+          if (!contentData.seasons || !Array.isArray(contentData.seasons) || contentData.seasons.length === 0) {
+            results.failed++;
+            results.errors.push(`İçerik ${i + 1} (${contentData.title}): Dizi için en az 1 sezon gerekli`);
+            continue;
+          }
+        }
+
         // Slug oluştur
-        const slug = slugify(`${movieData.title}-${movieData.year}`, {
+        const slug = slugify(`${contentData.title}-${contentData.year}`, {
           lower: true,
           strict: true,
         });
 
         // Aynı slug var mı kontrol et
-        const existingMovie = await LibraryMovie.findOne({ slug });
-        if (existingMovie) {
+        const existingContent = await LibraryMovie.findOne({ slug });
+        if (existingContent) {
           results.failed++;
-          results.errors.push(`Film ${i + 1} (${movieData.title}): Bu film zaten mevcut`);
+          results.errors.push(`İçerik ${i + 1} (${contentData.title}): Bu içerik zaten mevcut`);
           continue;
         }
 
-        // Yeni film oluştur
-        const newMovie = new LibraryMovie({
-          title: movieData.title,
-          year: parseInt(movieData.year),
-          series: movieData.series || '',
-          genres: movieData.genres,
-          description: movieData.description,
-          director: movieData.director || '',
-          poster: movieData.poster || '',
-          imdbId: movieData.imdbId || '',
-          imdbRating: movieData.imdbRating ? parseFloat(movieData.imdbRating) : null,
-          imdbLink: movieData.imdbLink || '',
-          duration: movieData.duration ? parseInt(movieData.duration) : null,
+        // Yeni içerik oluştur
+        const newContentData = {
+          title: contentData.title,
+          year: parseInt(contentData.year),
+          type: type,
+          series: contentData.series || '',
+          genres: contentData.genres,
+          description: contentData.description,
+          director: contentData.director || '',
+          poster: contentData.poster || '',
+          imdbId: contentData.imdbId || '',
+          imdbRating: contentData.imdbRating ? parseFloat(contentData.imdbRating) : null,
+          imdbLink: contentData.imdbLink || '',
+          duration: type === 'film' && contentData.duration ? parseInt(contentData.duration) : null,
           slug,
-          addedBy: user.userId, // Admin who added it
-          status: 'approved', // Auto-approve admin additions
-        });
+          addedBy: user.userId,
+          status: 'approved',
+        };
 
-        await newMovie.save();
+        // Dizi ise seasons ekle
+        if (type === 'series') {
+          newContentData.seasons = contentData.seasons;
+          newContentData.seriesStatus = contentData.seriesStatus || 'completed';
+        }
+
+        const newContent = new LibraryMovie(newContentData);
+        await newContent.save();
         results.successful++;
       } catch (error) {
         results.failed++;
-        results.errors.push(`Film ${i + 1} (${movieData.title || 'Bilinmeyen'}): ${error.message}`);
+        results.errors.push(`İçerik ${i + 1} (${contentData.title || 'Bilinmeyen'}): ${error.message}`);
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `${results.successful} film başarıyla eklendi`,
+      message: `${results.successful} içerik başarıyla eklendi`,
       results,
     });
   } catch (error) {
