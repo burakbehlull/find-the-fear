@@ -38,6 +38,7 @@ export default function LibraryPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState(null);
+  const [userMovieIds, setUserMovieIds] = useState([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -46,6 +47,10 @@ export default function LibraryPage() {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
+          // Kullanıcının film listesini al
+          if (data.user) {
+            fetchUserMovies();
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -53,6 +58,20 @@ export default function LibraryPage() {
     };
     checkAuth();
   }, []);
+
+  const fetchUserMovies = async () => {
+    try {
+      const res = await fetch('/api/user/saved-movies');
+      const data = await res.json();
+      if (data.success) {
+        // Film ID'lerini array olarak sakla
+        const ids = data.savedMovies.map(movie => movie._id);
+        setUserMovieIds(ids);
+      }
+    } catch (error) {
+      console.error('Kullanıcı film listesi yüklenemedi:', error);
+    }
+  };
 
   useEffect(() => {
     fetchMovies();
@@ -110,6 +129,8 @@ export default function LibraryPage() {
 
       if (data.success) {
         toast.success('Film listenize eklendi!');
+        // Listeyi güncelle
+        setUserMovieIds([...userMovieIds, movieId]);
       } else {
         toast.error(data.message);
       }
@@ -335,10 +356,15 @@ export default function LibraryPage() {
                   </div>
                   <Button
                     onClick={() => handleAddToList(movie._id)}
-                    className="w-full bg-red-600 hover:bg-red-700"
+                    className={`w-full ${
+                      userMovieIds.includes(movie._id)
+                        ? 'bg-green-600 hover:bg-green-700'
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
                     size="sm"
+                    disabled={userMovieIds.includes(movie._id)}
                   >
-                    Listime Ekle
+                    {userMovieIds.includes(movie._id) ? '✓ Listenizde' : 'Listeme Ekle'}
                   </Button>
                 </CardContent>
               </Card>
