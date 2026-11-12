@@ -331,16 +331,24 @@ export default function ProfilePage() {
                             </p>
                             {/* Dizi için ilerleme göster */}
                             {movie.movieId.type === 'series' && (
-                              <div className="mt-1 text-sm text-gray-400">
-                                {movie.totalWatchedEpisodes > 0 ? (
-                                  <span>
-                                    📺 {movie.totalWatchedEpisodes}/{movie.movieId.totalEpisodes || '?'} bölüm izlendi
-                                    {movie.currentSeason && movie.currentEpisode && (
-                                      <span className="ml-2">• Sezon {movie.currentSeason}, Bölüm {movie.currentEpisode}</span>
-                                    )}
-                                  </span>
+                              <div className="mt-2 space-y-1">
+                                {movie.isCompleted ? (
+                                  <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-900/30 text-green-300 rounded text-sm">
+                                    ✓ Bitirildi ({movie.totalWatchedEpisodes} bölüm)
+                                  </div>
+                                ) : movie.totalWatchedEpisodes > 0 ? (
+                                  <div className="text-sm">
+                                    <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-900/30 text-blue-300 rounded">
+                                      📺 Sezon {movie.currentSeason}, Bölüm {movie.currentEpisode}
+                                    </div>
+                                    <div className="text-gray-400 mt-1">
+                                      {movie.totalWatchedEpisodes}/{movie.movieId.totalEpisodes || '?'} bölüm izlendi
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <span>📺 Henüz başlanmadı</span>
+                                  <div className="text-sm text-gray-500">
+                                    📺 Henüz başlanmadı
+                                  </div>
                                 )}
                               </div>
                             )}

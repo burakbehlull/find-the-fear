@@ -34,6 +34,37 @@ export async function GET(request, { params }) {
       filteredMovies = userData.watchedMovies.filter(movie => movie.isPublic);
     }
 
+    // Dizi için izleme durumunu hesapla
+    const moviesWithProgress = filteredMovies.map(movie => {
+      if (movie.movieId && movie.movieId.type === 'series' && movie.watchedEpisodes && movie.watchedEpisodes.length > 0) {
+        // Toplam izlenen bölüm sayısı
+        const totalWatchedEpisodes = movie.watchedEpisodes.length;
+        
+        // Son izlenen bölümü bul (en yüksek sezon/bölüm)
+        const sortedEpisodes = [...movie.watchedEpisodes].sort((a, b) => {
+          if (a.season !== b.season) return b.season - a.season;
+          return b.episode - a.episode;
+        });
+        const lastWatchedEpisode = sortedEpisodes[0];
+        
+        // Tüm bölümler izlendiyse kontrol et
+        const totalEpisodes = movie.movieId.totalEpisodes || 0;
+        const isCompleted = totalEpisodes > 0 && totalWatchedEpisodes >= totalEpisodes;
+        
+        return {
+          ...movie,
+          totalWatchedEpisodes,
+          currentSeason: lastWatchedEpisode.season,
+          currentEpisode: lastWatchedEpisode.episode,
+          isCompleted,
+        };
+      }
+      return {
+        ...movie,
+        totalWatchedEpisodes: movie.watchedEpisodes?.length || 0,
+      };
+    });
+
     // Favori türü hesapla
     let favoriteGenre = userData.favoriteGenre;
     if (!favoriteGenre && filteredMovies.length > 0) {
@@ -63,7 +94,7 @@ export async function GET(request, { params }) {
         createdAt: userData.createdAt,
         isOwnProfile,
         movieCount: filteredMovies.length,
-        movies: filteredMovies,
+        movies: moviesWithProgress,
       },
     });
   } catch (error) {
