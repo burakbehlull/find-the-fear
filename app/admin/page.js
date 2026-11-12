@@ -51,6 +51,13 @@ export default function AdminPage() {
   const [editingMovie, setEditingMovie] = useState(null);
   const [updatingMovie, setUpdatingMovie] = useState(false);
   
+  // Öneri onaylarken dizi sezonları için
+  const [suggestionSeasons, setSuggestionSeasons] = useState({});
+  const [seriesStatusForSuggestion, setSeriesStatusForSuggestion] = useState({});
+  
+  // Admin film ekleme/düzenleme - bölüm detayları göster/gizle
+  const [expandedEpisodes, setExpandedEpisodes] = useState([]);
+  
   // Film/Dizi ekleme formu
   const [contentType, setContentType] = useState('film'); // 'film' veya 'series'
   const [movieForm, setMovieForm] = useState({
@@ -145,9 +152,25 @@ export default function AdminPage() {
     }
   };
 
-  const handleReview = async (suggestionId, action) => {
+  const handleReview = async (suggestionId, action, suggestion) => {
     try {
       setProcessingId(suggestionId);
+
+      // Dizi ise ve onaylanıyorsa sezon bilgilerini kontrol et
+      if (action === 'approve' && suggestion.type === 'series') {
+        const seasons = suggestionSeasons[suggestionId] || [];
+        if (seasons.length === 0) {
+          toast.error('Dizi için en az 1 sezon bilgisi ekleyin!');
+          setProcessingId(null);
+          return;
+        }
+        const invalidSeason = seasons.find(s => !s.episodeCount || s.episodeCount < 1);
+        if (invalidSeason) {
+          toast.error(`Sezon ${invalidSeason.seasonNumber} için bölüm sayısı girilmeli!`);
+          setProcessingId(null);
+          return;
+        }
+      }
 
       const res = await fetch('/api/suggestions/review', {
         method: 'POST',
@@ -156,6 +179,11 @@ export default function AdminPage() {
           suggestionId,
           action,
           adminNote,
+          // Dizi ise sezon bilgilerini ekle
+          ...(action === 'approve' && suggestion.type === 'series' && {
+            seasons: suggestionSeasons[suggestionId] || [],
+            seriesStatus: seriesStatusForSuggestion[suggestionId] || 'completed',
+          }),
         }),
       });
 
@@ -164,6 +192,17 @@ export default function AdminPage() {
       if (data.success) {
         toast.success(data.message);
         setAdminNote('');
+        // Sezon bilgilerini temizle
+        setSuggestionSeasons(prev => {
+          const newState = { ...prev };
+          delete newState[suggestionId];
+          return newState;
+        });
+        setSeriesStatusForSuggestion(prev => {
+          const newState = { ...prev };
+          delete newState[suggestionId];
+          return newState;
+        });
         fetchData();
       } else {
         toast.error(data.message);
@@ -812,7 +851,28 @@ export default function AdminPage() {
                                     value={season.episodeCount}
                                     onChange={(e) => {
                                       const newSeasons = [...movieForm.seasons];
-                                      newSeasons[index].episodeCount = parseInt(e.target.value) || 0;
+                                      const count = parseInt(e.target.value) || 0;
+                                      newSeasons[index].episodeCount = count;
+                                      
+                                      // Bölüm sayısı değiştiğinde episodes array'ini oluştur/güncelle
+                                      if (count > 0) {
+                                        const currentEpisodes = newSeasons[index].episodes || [];
+                                        const episodes = [];
+                                        for (let i = 1; i <= count; i++) {
+                                          // Mevcut bölüm varsa koru, yoksa yeni oluştur
+                                          episodes.push(currentEpisodes[i - 1] || {
+                                            episodeNumber: i,
+                                            title: '',
+                                            description: '',
+                                            duration: null,
+                                            airDate: null,
+                                          });
+                                        }
+                                        newSeasons[index].episodes = episodes;
+                                      } else {
+                                        newSeasons[index].episodes = [];
+                                      }
+                                      
                                       setMovieForm({ ...movieForm, seasons: newSeasons });
                                     }}
                                     className="bg-gray-600 border-gray-500 text-white mt-1"
@@ -850,6 +910,85 @@ export default function AdminPage() {
                                   rows={2}
                                 />
                               </div>
+
+                              {/* Bölüm Detayları */}
+                              {season.episodes && season.episodes.length > 0 && (
+                                <div className="border-t border-gray-600 pt-3">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                      const key = `${index}`;
+                                      setExpandedEpisodes(
+                                        expandedEpisodes.includes(key)
+                                          ? expandedEpisodes.filter(k => k !== key)
+                                          : [...expandedEpisodes, key]
+                                      );
+                                    }}
+                                    className="w-full bg-gray-600 hover:bg-gray-500 text-xs mb-2"
+                                  >
+                                    {expandedEpisodes.includes(`${index}`)
+                                      ? '▼ Bölüm Detaylarını Gizle'
+                                      : `▶ Bölüm Detaylarını Göster (${season.episodes.length} bölüm)`}
+                                  </Button>
+
+                                  {expandedEpisodes.includes(`${index}`) && (
+                                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                                      {season.episodes.map((episode, epIndex) => (
+                                        <div key={epIndex} className="bg-gray-800 rounded p-3 space-y-2">
+                                          <div className="font-semibold text-white text-sm">
+                                            Bölüm {episode.episodeNumber}
+                                          </div>
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            <div>
+                                              <label className="text-xs text-gray-400">Bölüm Adı (Opsiyonel)</label>
+                                              <Input
+                                                type="text"
+                                                value={episode.title || ''}
+                                                onChange={(e) => {
+                                                  const newSeasons = [...movieForm.seasons];
+                                                  newSeasons[index].episodes[epIndex].title = e.target.value;
+                                                  setMovieForm({ ...movieForm, seasons: newSeasons });
+                                                }}
+                                                className="bg-gray-700 border-gray-600 text-white text-xs h-8 mt-1"
+                                                placeholder="Pilot"
+                                              />
+                                            </div>
+                                            <div>
+                                              <label className="text-xs text-gray-400">Süre (dk)</label>
+                                              <Input
+                                                type="number"
+                                                value={episode.duration || ''}
+                                                onChange={(e) => {
+                                                  const newSeasons = [...movieForm.seasons];
+                                                  newSeasons[index].episodes[epIndex].duration = parseInt(e.target.value) || null;
+                                                  setMovieForm({ ...movieForm, seasons: newSeasons });
+                                                }}
+                                                className="bg-gray-700 border-gray-600 text-white text-xs h-8 mt-1"
+                                                placeholder="45"
+                                              />
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <label className="text-xs text-gray-400">Açıklama (Opsiyonel)</label>
+                                            <Textarea
+                                              value={episode.description || ''}
+                                              onChange={(e) => {
+                                                const newSeasons = [...movieForm.seasons];
+                                                newSeasons[index].episodes[epIndex].description = e.target.value;
+                                                setMovieForm({ ...movieForm, seasons: newSeasons });
+                                              }}
+                                              className="bg-gray-700 border-gray-600 text-white text-xs mt-1"
+                                              placeholder="Bu bölümde..."
+                                              rows={2}
+                                            />
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
 
@@ -1413,6 +1552,161 @@ export default function AdminPage() {
                       </p>
                     )}
 
+                    {/* DİZİ İÇİN SEZON EKLEME FORMU */}
+                    {suggestion.type === 'series' && (
+                      <div className="bg-gray-600/50 rounded-lg p-4 mb-4 border border-gray-500">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                            <Tv className="h-4 w-4" />
+                            Dizi Sezonları (Onaylamadan önce ekleyin!)
+                          </h4>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              const currentSeasons = suggestionSeasons[suggestion._id] || [];
+                              setSuggestionSeasons({
+                                ...suggestionSeasons,
+                                [suggestion._id]: [
+                                  ...currentSeasons,
+                                  {
+                                    seasonNumber: currentSeasons.length + 1,
+                                    episodeCount: 0,
+                                    releaseYear: suggestion.year,
+                                    description: '',
+                                  },
+                                ],
+                              });
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Sezon Ekle
+                          </Button>
+                        </div>
+
+                        {/* Dizi Durumu */}
+                        <div className="mb-3">
+                          <label className="text-xs text-gray-300 mb-1 block">Dizi Durumu</label>
+                          <select
+                            value={seriesStatusForSuggestion[suggestion._id] || 'completed'}
+                            onChange={(e) =>
+                              setSeriesStatusForSuggestion({
+                                ...seriesStatusForSuggestion,
+                                [suggestion._id]: e.target.value,
+                              })
+                            }
+                            className="w-full bg-gray-700 border-gray-500 text-white rounded-md px-3 py-1.5 text-sm"
+                          >
+                            <option value="completed">Tamamlandı</option>
+                            <option value="ongoing">Devam Ediyor</option>
+                            <option value="cancelled">İptal Edildi</option>
+                          </select>
+                        </div>
+
+                        {suggestionSeasons[suggestion._id] && suggestionSeasons[suggestion._id].length > 0 ? (
+                          <div className="space-y-2">
+                            {suggestionSeasons[suggestion._id].map((season, index) => (
+                              <div key={index} className="bg-gray-700 rounded p-3 space-y-2">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-semibold text-white">
+                                    Sezon {season.seasonNumber}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                      const newSeasons = suggestionSeasons[suggestion._id].filter(
+                                        (_, i) => i !== index
+                                      );
+                                      setSuggestionSeasons({
+                                        ...suggestionSeasons,
+                                        [suggestion._id]: newSeasons,
+                                      });
+                                    }}
+                                    className="bg-red-600/20 border border-red-600 text-red-400 hover:bg-red-600/40 h-6 px-2"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-xs text-gray-400">Bölüm Sayısı *</label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      value={season.episodeCount}
+                                      onChange={(e) => {
+                                        const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                        newSeasons[index].episodeCount = parseInt(e.target.value) || 0;
+                                        setSuggestionSeasons({
+                                          ...suggestionSeasons,
+                                          [suggestion._id]: newSeasons,
+                                        });
+                                      }}
+                                      className="bg-gray-600 border-gray-500 text-white text-sm h-8 mt-1"
+                                      placeholder="8"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-400">Yayın Yılı</label>
+                                    <Input
+                                      type="number"
+                                      value={season.releaseYear}
+                                      onChange={(e) => {
+                                        const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                        newSeasons[index].releaseYear = parseInt(e.target.value);
+                                        setSuggestionSeasons({
+                                          ...suggestionSeasons,
+                                          [suggestion._id]: newSeasons,
+                                        });
+                                      }}
+                                      className="bg-gray-600 border-gray-500 text-white text-sm h-8 mt-1"
+                                      placeholder={new Date().getFullYear()}
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-400">Sezon Açıklaması</label>
+                                  <Textarea
+                                    value={season.description}
+                                    onChange={(e) => {
+                                      const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                      newSeasons[index].description = e.target.value;
+                                      setSuggestionSeasons({
+                                        ...suggestionSeasons,
+                                        [suggestion._id]: newSeasons,
+                                      });
+                                    }}
+                                    className="bg-gray-600 border-gray-500 text-white text-sm mt-1"
+                                    placeholder="Bu sezonda..."
+                                    rows={2}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                            <div className="bg-blue-900/20 border border-blue-700 rounded p-2">
+                              <p className="text-xs text-blue-300">
+                                📊 Toplam: {suggestionSeasons[suggestion._id].length} Sezon,{' '}
+                                {suggestionSeasons[suggestion._id].reduce(
+                                  (sum, s) => sum + (s.episodeCount || 0),
+                                  0
+                                )}{' '}
+                                Bölüm
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-700/30 rounded p-4 text-center">
+                            <Tv className="h-6 w-6 text-gray-500 mx-auto mb-1" />
+                            <p className="text-xs text-gray-400">
+                              Henüz sezon eklenmedi. Onaylamadan önce sezon ekleyin!
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="border-t border-gray-600 pt-4">
                       <label className="block text-sm font-medium text-gray-300 mb-2">
                         Admin Notu (Opsiyonel)
@@ -1427,7 +1721,7 @@ export default function AdminPage() {
 
                       <div className="flex gap-3">
                         <Button
-                          onClick={() => handleReview(suggestion._id, 'approve')}
+                          onClick={() => handleReview(suggestion._id, 'approve', suggestion)}
                           disabled={processingId === suggestion._id}
                           className="flex-1 bg-green-600 hover:bg-green-700"
                         >
@@ -1435,7 +1729,7 @@ export default function AdminPage() {
                           {processingId === suggestion._id ? 'İşleniyor...' : 'Onayla'}
                         </Button>
                         <Button
-                          onClick={() => handleReview(suggestion._id, 'reject')}
+                          onClick={() => handleReview(suggestion._id, 'reject', suggestion)}
                           disabled={processingId === suggestion._id}
                           className="flex-1 bg-red-600 hover:bg-red-700"
                         >

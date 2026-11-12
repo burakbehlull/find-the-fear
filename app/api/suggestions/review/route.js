@@ -19,7 +19,7 @@ export async function POST(request) {
     await connectDB();
 
     const body = await request.json();
-    const { suggestionId, action, adminNote } = body; // action: 'approve' veya 'reject'
+    const { suggestionId, action, adminNote, seasons, seriesStatus } = body; // seasons ve seriesStatus dizi için
 
     if (!suggestionId || !action) {
       return NextResponse.json(
@@ -52,8 +52,8 @@ export async function POST(request) {
         locale: 'tr'
       });
 
-      // Filmi kütüphaneye ekle
-      const movie = await LibraryMovie.create({
+      // Dizi için sezon/bölüm hesaplamaları
+      const contentData = {
         title: suggestion.title,
         slug,
         year: suggestion.year,
@@ -62,9 +62,28 @@ export async function POST(request) {
         director: suggestion.director,
         poster: suggestion.poster,
         imdbLink: suggestion.imdbLink,
+        type: suggestion.type || 'film',
         addedBy: suggestion.suggestedBy,
         status: 'approved',
-      });
+      };
+
+      // Dizi ise sezon bilgilerini ekle
+      if (suggestion.type === 'series') {
+        if (!seasons || seasons.length === 0) {
+          return NextResponse.json(
+            { success: false, message: 'Dizi için sezon bilgileri gerekli' },
+            { status: 400 }
+          );
+        }
+
+        contentData.seasons = seasons;
+        contentData.totalSeasons = seasons.length;
+        contentData.totalEpisodes = seasons.reduce((sum, s) => sum + (s.episodeCount || 0), 0);
+        contentData.seriesStatus = seriesStatus || 'completed';
+      }
+
+      // İçeriği kütüphaneye ekle
+      const movie = await LibraryMovie.create(contentData);
 
       suggestion.status = 'approved';
       suggestion.reviewedBy = user.userId;
@@ -72,9 +91,11 @@ export async function POST(request) {
       suggestion.adminNote = adminNote || '';
       await suggestion.save();
 
+      const contentTypeText = suggestion.type === 'series' ? 'Dizi' : 'Film';
+
       return NextResponse.json({
         success: true,
-        message: 'Film kütüphaneye eklendi',
+        message: `${contentTypeText} kütüphaneye eklendi`,
         movie,
       });
     } else if (action === 'reject') {
