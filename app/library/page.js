@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Filter, Plus, Star, Users, Film, Tv } from 'lucide-react';
+import { Search, Filter, Plus, Star, Users, Film, Tv, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const GENRES = [
@@ -34,11 +34,12 @@ export default function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState([]);
-  const [contentType, setContentType] = useState('all'); // 'all', 'film', 'series'
+  const [contentType, setContentType] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
   const [user, setUser] = useState(null);
   const [userMovieIds, setUserMovieIds] = useState([]);
+  const [watchedMovieIds, setWatchedMovieIds] = useState([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -47,7 +48,6 @@ export default function LibraryPage() {
         if (res.ok) {
           const data = await res.json();
           setUser(data.user);
-          // Kullanıcının film listesini al
           if (data.user) {
             fetchUserMovies();
           }
@@ -61,12 +61,17 @@ export default function LibraryPage() {
 
   const fetchUserMovies = async () => {
     try {
-      const res = await fetch('/api/user/saved-movies');
+      const res = await fetch('/api/user/movies');
       const data = await res.json();
       if (data.success) {
-        // Film ID'lerini array olarak sakla
-        const ids = data.savedMovies.map(movie => movie._id);
+        const ids = data.movies.map(m => m.movieId._id);
         setUserMovieIds(ids);
+        
+        // İzlenen filmler (rating veya watchedAt veya watchedEpisodes olan)
+        const watchedIds = data.movies
+          .filter(m => m.rating || m.watchedAt || (m.watchedEpisodes && m.watchedEpisodes.length > 0))
+          .map(m => m.movieId._id);
+        setWatchedMovieIds(watchedIds);
       }
     } catch (error) {
       console.error('Kullanıcı film listesi yüklenemedi:', error);
@@ -86,7 +91,6 @@ export default function LibraryPage() {
         sortBy,
       });
 
-      // İçerik tipi filtresi ekle
       if (contentType !== 'all') {
         params.append('type', contentType);
       }
@@ -128,15 +132,85 @@ export default function LibraryPage() {
       const data = await res.json();
 
       if (data.success) {
-        toast.success('Film listenize eklendi!');
-        // Listeyi güncelle
+        toast.success('Listenize eklendi!');
         setUserMovieIds([...userMovieIds, movieId]);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
       console.error('Film ekleme hatası:', error);
-      toast.error('Film eklenirken hata oluştu');
+      toast.error('Ekleme sırasında hata oluştu');
+    }
+  };
+
+  const handleMarkAsWatched = async (movie) => {
+    if (!user) {
+      toast.error('Giriş yapmalısınız');
+      router.push('/');
+      return;
+    }
+
+    // Önce listeye ekle
+    if (!userMovieIds.includes(movie._id)) {
+      try {
+        const res = await fetch('/api/user/movies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ movieId: movie._id }),
+        });
+        if (!res.ok) {
+          toast.error('Listeye eklenemedi');
+          return;
+        }
+        setUserMovieIds([...userMovieIds, movie._id]);
+      } catch (error) {
+        toast.error('Hata oluştu');
+        return;
+      }
+    }
+
+    try {
+      // Film ise direkt izlendi işaretle
+      if (movie.type === 'film') {
+        const res = await fetch('/api/user/movies/update', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            movieId: movie._id,
+            watchedAt: new Date().toISOString()
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          toast.success('İzlendi olarak işaretlendi!');
+          setWatchedMovieIds([...watchedMovieIds, movie._id]);
+        }
+      }
+      // Dizi ise 1. Sezon 1. Bölümü işaretle
+      else if (movie.type === 'series') {
+        const res = await fetch('/api/user/watch-episode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            movieId: movie._id,
+            season: 1,
+            episode: 1,
+            watchedAt: new Date().toISOString(),
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          toast.success('Sezon 1 Bölüm 1 izlendi!');
+          setWatchedMovieIds([...watchedMovieIds, movie._id]);
+        } else {
+          toast.error(data.message);
+        }
+      }
+    } catch (error) {
+      console.error('İzlendi işaretleme hatası:', error);
+      toast.error('Hata oluştu');
     }
   };
 
@@ -160,7 +234,7 @@ export default function LibraryPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
                 type="text"
-                placeholder="Film ara..."
+                placeholder="İçerik ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-gray-800 border-gray-700 text-white"
@@ -354,18 +428,37 @@ export default function LibraryPage() {
                       <span className="text-xs">{movie.watchedByCount}</span>
                     </div>
                   </div>
-                  <Button
-                    onClick={() => handleAddToList(movie._id)}
-                    className={`w-full ${
-                      userMovieIds.includes(movie._id)
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
-                    size="sm"
-                    disabled={userMovieIds.includes(movie._id)}
-                  >
-                    {userMovieIds.includes(movie._id) ? '✓ Listenizde' : 'Listeme Ekle'}
-                  </Button>
+                  
+                  {/* Butonlar */}
+                  {!userMovieIds.includes(movie._id) ? (
+                    <Button
+                      onClick={() => handleAddToList(movie._id)}
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      size="sm"
+                    >
+                      Listeme Ekle
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handleMarkAsWatched(movie)}
+                      className={`w-full ${
+                        watchedMovieIds.includes(movie._id)
+                          ? 'bg-emerald-600 hover:bg-emerald-700'
+                          : 'bg-gray-600 hover:bg-gray-700'
+                      }`}
+                      size="sm"
+                      disabled={watchedMovieIds.includes(movie._id)}
+                    >
+                      {watchedMovieIds.includes(movie._id) ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          İzlendi
+                        </>
+                      ) : (
+                        'İzlendi İşaretle'
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}

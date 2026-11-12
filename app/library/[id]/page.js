@@ -62,34 +62,47 @@ export default function MovieDetailPage() {
       // Film bilgisini al (slug ile)
       const movieRes = await fetch(`/api/library/movies/slug/${params.id}`);
       const movieData = await movieRes.json();
-      if (movieData.success) {
-        setMovie(movieData.movie);
+      
+      if (!movieData.success || !movieData.movie) {
+        toast.error('Film bulunamadı');
+        setLoading(false);
+        return;
+      }
+      
+      setMovie(movieData.movie);
+
+      // Yorumları al
+      try {
+        const commentsRes = await fetch(`/api/library/comments?movieId=${movieData.movie._id}`);
+        const commentsData = await commentsRes.json();
+        if (commentsData.success) {
+          setComments(commentsData.comments);
+        }
+      } catch (err) {
+        console.error('Yorumlar yüklenemedi:', err);
       }
 
-      // Yorumları al (slug yerine _id kullanıyoruz yorumlar için)
-      const commentsRes = await fetch(`/api/library/comments?movieId=${movieData.movie._id}`);
-      const commentsData = await commentsRes.json();
-      if (commentsData.success) {
-        setComments(commentsData.comments);
-      }
-
-      // Kullanıcının bu içeriği listesinde olup olmadığını ve puanını kontrol et
+      // Kullanıcının bu içeriği listesinde olup olmadığını kontrol et
       if (userRes.ok && movieData.movie) {
-        const userMoviesRes = await fetch('/api/user/movies');
-        const userMoviesData = await userMoviesRes.json();
-        if (userMoviesData.success) {
-          const userMovie = userMoviesData.movies.find(
-            (m) => m.movieId._id === movieData.movie._id
-          );
-          if (userMovie) {
-            setIsInList(true);
-            setUserRating(userMovie.rating);
-            
-            // Dizi ise izlenen bölümleri yükle
-            if (movieData.movie.type === 'series' && userMovie.watchedEpisodes) {
-              setWatchedEpisodes(userMovie.watchedEpisodes);
+        try {
+          const userMoviesRes = await fetch('/api/user/movies');
+          const userMoviesData = await userMoviesRes.json();
+          if (userMoviesData.success) {
+            const userMovie = userMoviesData.movies.find(
+              (m) => m.movieId && m.movieId._id === movieData.movie._id
+            );
+            if (userMovie) {
+              setIsInList(true);
+              setUserRating(userMovie.rating);
+              
+              // Dizi ise izlenen bölümleri yükle
+              if (movieData.movie.type === 'series' && userMovie.watchedEpisodes) {
+                setWatchedEpisodes(userMovie.watchedEpisodes);
+              }
             }
           }
+        } catch (err) {
+          console.error('Kullanıcı verileri yüklenemedi:', err);
         }
       }
     } catch (error) {
