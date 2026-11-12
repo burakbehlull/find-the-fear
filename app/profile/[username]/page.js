@@ -247,9 +247,21 @@ export default function ProfilePage() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">@{profile.username}</h1>
                 {profile.bio && <p className="text-sm sm:text-base text-gray-300 mb-3">{profile.bio}</p>}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 text-xs sm:text-sm text-gray-400">
-                  <div>
-                    <span className="font-semibold text-white">{profile.movieCount}</span> Film
-                  </div>
+                  {profile.filmCount > 0 && (
+                    <div>
+                      <span className="font-semibold text-white">{profile.filmCount}</span> Film
+                    </div>
+                  )}
+                  {profile.seriesCount > 0 && (
+                    <div>
+                      <span className="font-semibold text-white">{profile.seriesCount}</span> Dizi
+                    </div>
+                  )}
+                  {profile.filmCount === 0 && profile.seriesCount === 0 && (
+                    <div>
+                      <span className="font-semibold text-white">0</span> İçerik
+                    </div>
+                  )}
                   {profile.favoriteGenre && (
                     <div>
                       Favori Tür: <span className="font-semibold text-white">{GENRE_NAMES[profile.favoriteGenre]}</span>
@@ -278,15 +290,15 @@ export default function ProfilePage() {
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
             <CardTitle className="text-white">
-              {profile.isOwnProfile ? 'İzlediğim Filmler' : `${profile.username}'in İzlediği Filmler`}
+              {profile.isOwnProfile ? 'İzlediğim İçerikler' : `${profile.username}'in İzlediği İçerikler`}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {profile.movies.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">Henüz film eklenmemiş</p>
+              <p className="text-gray-400 text-center py-8">Henüz içerik eklenmemiş</p>
             ) : profile.movies.filter(movie => movie.movieId).length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-400">Listedeki tüm filmler silinmiş</p>
+                <p className="text-gray-400">Listedeki tüm içerikler silinmiş</p>
                 {profile.isOwnProfile && (
                   <Link href="/library">
                     <Button className="mt-4 bg-red-600 hover:bg-red-700">

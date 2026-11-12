@@ -94,6 +94,8 @@ export async function GET(request, { params }) {
         createdAt: userData.createdAt,
         isOwnProfile,
         movieCount: filteredMovies.length,
+        filmCount: moviesWithProgress.filter(m => m.movieId && m.movieId.type === 'film').length,
+        seriesCount: moviesWithProgress.filter(m => m.movieId && m.movieId.type === 'series').length,
         movies: moviesWithProgress,
       },
     });
