@@ -6,6 +6,11 @@ const MovieSuggestionSchema = new mongoose.Schema({
     required: [true, 'Film adı gerekli'],
     trim: true,
   },
+  type: {
+    type: String,
+    enum: ['film', 'series'],
+    default: 'film',
+  },
   year: {
     type: Number,
     required: [true, 'Yıl gerekli'],

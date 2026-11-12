@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Film, Tv } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const GENRES = [
@@ -22,7 +22,9 @@ const GENRES = [
 
 export default function SuggestMoviePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [contentType, setContentType] = useState('film'); // 'film' veya 'series'
   const [formData, setFormData] = useState({
     title: '',
     year: '',
@@ -32,6 +34,14 @@ export default function SuggestMoviePage() {
     poster: '',
     imdbLink: '',
   });
+
+  // URL'den type parametresini oku
+  useEffect(() => {
+    const type = searchParams.get('type');
+    if (type === 'series') {
+      setContentType('series');
+    }
+  }, [searchParams]);
 
   const handleGenreToggle = (genre) => {
     setFormData((prev) => ({
@@ -57,6 +67,7 @@ export default function SuggestMoviePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          type: contentType, // İçerik tipini ekle
           year: parseInt(formData.year),
         }),
       });
@@ -70,8 +81,8 @@ export default function SuggestMoviePage() {
         toast.error(data.message);
       }
     } catch (error) {
-      console.error('Film önerme hatası:', error);
-      toast.error('Film önerilirken hata oluştu');
+      console.error(`${contentType === 'film' ? 'Film' : 'Dizi'} önerme hatası:`, error);
+      toast.error(`${contentType === 'film' ? 'Film' : 'Dizi'} önerilirken hata oluştu`);
     } finally {
       setLoading(false);
     }
@@ -91,10 +102,38 @@ export default function SuggestMoviePage() {
 
         <Card className="bg-gray-800/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white text-2xl">Film Öner</CardTitle>
+            <CardTitle className="text-white text-2xl flex items-center gap-2">
+              {contentType === 'film' ? (
+                <><Film className="h-6 w-6" /> Film Öner</>
+              ) : (
+                <><Tv className="h-6 w-6" /> Dizi Öner</>
+              )}
+            </CardTitle>
             <CardDescription className="text-gray-400">
-              Kütüphanede olmayan bir film öner. Admin onayından sonra eklenecek.
+              Kütüphanede olmayan bir {contentType === 'film' ? 'film' : 'dizi'} öner. Admin onayından sonra eklenecek.
             </CardDescription>
+            
+            {/* İçerik Tipi Değiştirici */}
+            <div className="flex gap-2 mt-4">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setContentType('film')}
+                className={contentType === 'film' ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}
+              >
+                <Film className="h-3 w-3 mr-1" />
+                Film
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setContentType('series')}
+                className={contentType === 'series' ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}
+              >
+                <Tv className="h-3 w-3 mr-1" />
+                Dizi
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">

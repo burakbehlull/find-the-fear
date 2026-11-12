@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { verifyAuth } from '@/lib/auth';
 
@@ -23,7 +23,7 @@ export async function POST(request) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     const userData = await User.findById(user.userId);
 
@@ -71,7 +71,7 @@ export async function GET(request) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     const userData = await User.findById(user.userId).select('doNotRecommend');
 
@@ -109,7 +109,7 @@ export async function DELETE(request) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     const userData = await User.findById(user.userId);
     userData.doNotRecommend = userData.doNotRecommend.filter(

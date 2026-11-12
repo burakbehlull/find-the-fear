@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { LibraryMovie } from '@/models/Movie';
 import { verifyAuth } from '@/lib/auth';
@@ -23,7 +23,7 @@ export async function POST(request) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     const userData = await User.findById(user.userId);
     const movie = await LibraryMovie.findById(movieId);

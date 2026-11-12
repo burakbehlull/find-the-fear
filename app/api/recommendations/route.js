@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { getMovieRecommendations } from '@/lib/gemini';
@@ -14,7 +14,7 @@ function normalizeTitle(title) {
 
 export async function POST(request) {
   try {
-    await dbConnect();
+    await connectDB();
     
     const userId = getUserFromRequest(request);
     

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 
 // Film sil
 export async function DELETE(request, { params }) {
   try {
-    await dbConnect();
+    await connectDB();
     
     const userId = getUserFromRequest(request);
     

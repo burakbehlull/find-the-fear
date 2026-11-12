@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import { LibraryMovie } from '@/models/Movie';
 import { verifyAuth } from '@/lib/auth';
 import slugify from 'slugify';
@@ -32,7 +32,7 @@ export async function POST(request) {
       );
     }
 
-    await dbConnect();
+    await connectDB();
 
     const results = {
       total: movies.length,

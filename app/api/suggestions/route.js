@@ -67,7 +67,7 @@ export async function POST(request) {
     await connectDB();
 
     const body = await request.json();
-    const { title, year, genres, description, director, poster, imdbLink } = body;
+    const { title, year, genres, description, director, poster, imdbLink, type } = body;
 
     if (!title || !year || !genres || genres.length === 0 || !description) {
       return NextResponse.json(
@@ -84,12 +84,15 @@ export async function POST(request) {
       director: director || '',
       poster: poster || '',
       imdbLink: imdbLink || '',
+      type: type || 'film', // İçerik tipi ekle
       suggestedBy: user.userId,
     });
 
+    const contentTypeText = type === 'series' ? 'Dizi' : 'Film';
+    
     return NextResponse.json({
       success: true,
-      message: 'Film öneriniz gönderildi. Admin onayından sonra kütüphaneye eklenecek.',
+      message: `${contentTypeText} öneriniz gönderildi. Admin onayından sonra kütüphaneye eklenecek.`,
       suggestion,
     }, { status: 201 });
   } catch (error) {

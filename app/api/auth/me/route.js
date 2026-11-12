@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 
 export async function GET(request) {
   try {
-    await dbConnect();
+    await connectDB();
     
     const userId = getUserFromRequest(request);
     

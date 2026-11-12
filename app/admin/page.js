@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Film, Users, AlertCircle, CheckCircle, XCircle, ExternalLink, Plus, Trash2, Upload, Tv } from 'lucide-react';
+import { Film, Users, AlertCircle, CheckCircle, XCircle, ExternalLink, Plus, Trash2, Upload, Tv, Edit2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -48,6 +48,8 @@ export default function AdminPage() {
   const [addingMovie, setAddingMovie] = useState(false);
   const [deletingMovieId, setDeletingMovieId] = useState(null);
   const [updatingRoleId, setUpdatingRoleId] = useState(null);
+  const [editingMovie, setEditingMovie] = useState(null);
+  const [updatingMovie, setUpdatingMovie] = useState(false);
   
   // Film/Dizi ekleme formu
   const [contentType, setContentType] = useState('film'); // 'film' veya 'series'
@@ -286,6 +288,105 @@ export default function AdminPage() {
     }
   };
 
+  const handleEditMovie = (movie) => {
+    setEditingMovie(movie);
+    setContentType(movie.type || 'film');
+    setMovieForm({
+      title: movie.title || '',
+      year: movie.year?.toString() || '',
+      series: movie.series || '',
+      genres: movie.genres || [],
+      description: movie.description || '',
+      director: movie.director || '',
+      poster: movie.poster || '',
+      imdbId: movie.imdbId || '',
+      imdbRating: movie.imdbRating?.toString() || '',
+      imdbLink: movie.imdbLink || '',
+      duration: movie.duration?.toString() || '',
+      seriesStatus: movie.seriesStatus || 'completed',
+      seasons: movie.seasons || [],
+    });
+    setShowAddMovie(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleUpdateMovie = async (e) => {
+    e.preventDefault();
+
+    if (!editingMovie) return;
+
+    // Temel validasyon
+    if (!movieForm.title || !movieForm.year || movieForm.genres.length === 0 || !movieForm.description) {
+      toast.error('Lütfen gerekli alanları doldurun');
+      return;
+    }
+
+    // Dizi için sezon kontrolü
+    if (contentType === 'series') {
+      if (!movieForm.seasons || movieForm.seasons.length === 0) {
+        toast.error('En az 1 sezon ekleyin!');
+        return;
+      }
+      const invalidSeason = movieForm.seasons.find(s => !s.episodeCount || s.episodeCount < 1);
+      if (invalidSeason) {
+        toast.error(`Sezon ${invalidSeason.seasonNumber} için bölüm sayısı girilmeli!`);
+        return;
+      }
+    }
+
+    try {
+      setUpdatingMovie(true);
+      const res = await fetch(`/api/library/movies/${editingMovie._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...movieForm,
+          type: contentType,
+          year: parseInt(movieForm.year),
+          imdbRating: movieForm.imdbRating ? parseFloat(movieForm.imdbRating) : null,
+          duration: contentType === 'film' && movieForm.duration ? parseInt(movieForm.duration) : null,
+          // Dizi için
+          ...(contentType === 'series' && {
+            seasons: movieForm.seasons,
+            seriesStatus: movieForm.seriesStatus,
+          }),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success(`${contentType === 'film' ? 'Film' : 'Dizi'} başarıyla güncellendi!`);
+        setShowAddMovie(false);
+        setEditingMovie(null);
+        setMovieForm({
+          title: '',
+          year: '',
+          series: '',
+          genres: [],
+          description: '',
+          director: '',
+          poster: '',
+          imdbId: '',
+          imdbRating: '',
+          imdbLink: '',
+          duration: '',
+          seriesStatus: 'completed',
+          seasons: [],
+        });
+        setContentType('film');
+        fetchData();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error('İçerik güncelleme hatası:', error);
+      toast.error(`${contentType === 'film' ? 'Film' : 'Dizi'} güncellenirken hata oluştu`);
+    } finally {
+      setUpdatingMovie(false);
+    }
+  };
+
   const handleUpdateUserRole = async (userId, action) => {
     const actionText = action === 'make-admin' ? 'admin yapmak' : 'admin yetkisini kaldırmak';
     if (!confirm(`Bu kullanıcıyı ${actionText} istediğinizden emin misiniz?`)) {
@@ -483,18 +584,33 @@ export default function AdminPage() {
           <Card className="bg-gray-800/50 border-gray-700 mb-6">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                {contentType === 'film' ? (
-                  <><Film className="h-5 w-5" /> Kütüphaneye Film Ekle</>
+                {editingMovie ? (
+                  <>
+                    {contentType === 'film' ? (
+                      <><Film className="h-5 w-5" /> Film Düzenle</>
+                    ) : (
+                      <><Tv className="h-5 w-5" /> Dizi Düzenle</>
+                    )}
+                  </>
                 ) : (
-                  <><Tv className="h-5 w-5" /> Kütüphaneye Dizi Ekle</>
+                  <>
+                    {contentType === 'film' ? (
+                      <><Film className="h-5 w-5" /> Kütüphaneye Film Ekle</>
+                    ) : (
+                      <><Tv className="h-5 w-5" /> Kütüphaneye Dizi Ekle</>
+                    )}
+                  </>
                 )}
               </CardTitle>
               <CardDescription className="text-gray-400">
-                Yeni bir {contentType === 'film' ? 'film' : 'dizi'} direkt olarak kütüphaneye ekleyin
+                {editingMovie
+                  ? `"${editingMovie.title}" ${contentType === 'film' ? 'filmini' : 'dizisini'} düzenleyin`
+                  : `Yeni bir ${contentType === 'film' ? 'film' : 'dizi'} direkt olarak kütüphaneye ekleyin`
+                }
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddMovie} className="space-y-4">
+              <form onSubmit={editingMovie ? handleUpdateMovie : handleAddMovie} className="space-y-4">
                 
                 {/* İçerik Tipi Göstergesi */}
                 <div className="flex items-center gap-2 p-3 bg-gray-700/50 rounded-lg">
@@ -815,14 +931,35 @@ export default function AdminPage() {
                 <div className="flex gap-3">
                   <Button
                     type="submit"
-                    disabled={addingMovie}
+                    disabled={addingMovie || updatingMovie}
                     className="flex-1 bg-green-600 hover:bg-green-700"
                   >
-                    {addingMovie ? 'Ekleniyor...' : 'Filmi Ekle'}
+                    {editingMovie
+                      ? updatingMovie ? 'Güncelleniyor...' : 'Güncelle'
+                      : addingMovie ? 'Ekleniyor...' : 'Ekle'
+                    }
                   </Button>
                   <Button
                     type="button"
-                    onClick={() => setShowAddMovie(false)}
+                    onClick={() => {
+                      setShowAddMovie(false);
+                      setEditingMovie(null);
+                      setMovieForm({
+                        title: '',
+                        year: '',
+                        series: '',
+                        genres: [],
+                        description: '',
+                        director: '',
+                        poster: '',
+                        imdbId: '',
+                        imdbRating: '',
+                        imdbLink: '',
+                        duration: '',
+                        seriesStatus: 'completed',
+                        seasons: [],
+                      });
+                    }}
                     variant="outline"
                     className="bg-gray-700 border-gray-600 hover:bg-gray-600"
                   >
@@ -1004,11 +1141,27 @@ export default function AdminPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-bold text-white truncate">
-                              {movie.title} ({movie.year})
-                            </h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-white truncate">
+                                {movie.title} ({movie.year})
+                              </h3>
+                              {movie.type === 'series' ? (
+                                <span className="px-2 py-0.5 bg-purple-600 text-purple-100 text-xs rounded-full">
+                                  DIZI
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-red-600 text-red-100 text-xs rounded-full">
+                                  FİLM
+                                </span>
+                              )}
+                            </div>
                             {movie.series && (
                               <p className="text-sm text-purple-400">📺 {movie.series}</p>
+                            )}
+                            {movie.type === 'series' && movie.totalSeasons && (
+                              <p className="text-sm text-gray-400">
+                                {movie.totalSeasons} Sezon • {movie.totalEpisodes || 0} Bölüm
+                              </p>
                             )}
                             <p className="text-sm text-gray-400 mt-1">
                               Türler: {movie.genres.map(g => GENRE_NAMES[g]).join(', ')}
@@ -1035,15 +1188,25 @@ export default function AdminPage() {
                                 size="sm"
                                 variant="outline"
                                 className="bg-gray-600 border-gray-500 hover:bg-gray-500"
+                                title="Görüntüle"
                               >
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
                             </Link>
                             <Button
                               size="sm"
+                              onClick={() => handleEditMovie(movie)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                              title="Düzenle"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
                               onClick={() => handleDeleteMovie(movie._id, movie.title)}
                               disabled={deletingMovieId === movie._id}
                               className="bg-red-600 hover:bg-red-700"
+                              title="Sil"
                             >
                               {deletingMovieId === movie._id ? (
                                 <span className="animate-spin">⏳</span>
@@ -1194,9 +1357,20 @@ export default function AdminPage() {
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-2xl font-bold text-white mb-1">
-                          {suggestion.title}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-2xl font-bold text-white">
+                            {suggestion.title}
+                          </h3>
+                          {suggestion.type === 'series' ? (
+                            <span className="px-2 py-0.5 bg-purple-600 text-purple-100 text-xs rounded-full">
+                              DİZİ
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-red-600 text-red-100 text-xs rounded-full">
+                              FİLM
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-400">
                           {suggestion.year} •{' '}
                           {suggestion.genres.map((g) => GENRE_NAMES[g]).join(', ')}

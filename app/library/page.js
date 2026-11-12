@@ -215,23 +215,31 @@ export default function LibraryPage() {
                         <label
                           htmlFor={genre.value}
                           className="text-sm text-gray-300 cursor-pointer"
-                    >
-                      {genre.label}
-                    </label>
+                        >
+                          {genre.label}
+                        </label>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             </Card>
           )}
         </div>
 
-        {/* Film Öneri Butonu */}
+        {/* Film/Dizi Öneri Butonları */}
         {user && (
-          <div className="mb-6">
+          <div className="mb-6 flex gap-3">
             <Link href="/library/suggest">
               <Button className="bg-purple-600 hover:bg-purple-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Film Öner
+              </Button>
+            </Link>
+            <Link href="/library/suggest?type=series">
+              <Button className="bg-teal-600 hover:bg-teal-700">
+                <Tv className="h-4 w-4 mr-2" />
+                Dizi Öner
               </Button>
             </Link>
           </div>
