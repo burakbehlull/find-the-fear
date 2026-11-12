@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Film, Star, Calendar, Eye, EyeOff, Trash2, MessageSquare, Edit2, X, Tv } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 const GENRE_NAMES = {
   komedi: 'Komedi Korku',
@@ -256,7 +257,7 @@ export default function ProfilePage() {
                   )}
                   {profile.createdAt && (
                     <div>
-                      Katılma: <span className="font-semibold text-white">{format(new Date(profile.createdAt), 'MMMM yyyy')}</span>
+                      Katılma: <span className="font-semibold text-white">{format(new Date(profile.createdAt), 'd MMMM yyyy', { locale: tr })}</span>
                     </div>
                   )}
                 </div>
@@ -472,7 +473,7 @@ export default function ProfilePage() {
                                 </div>
                                 <p className="text-gray-300">{comment.comment}</p>
                                 <span className="text-xs text-gray-500">
-                                  {format(new Date(comment.createdAt), 'dd/MM/yyyy HH:mm')}
+                                  {format(new Date(comment.createdAt), 'd MMMM yyyy HH:mm', { locale: tr })}
                                 </span>
                               </div>
                             ))}

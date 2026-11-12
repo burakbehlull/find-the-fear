@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ const GENRES = [
   { value: 'belgesel', label: 'Belgesel' },
 ];
 
-export default function SuggestMoviePage() {
+function SuggestForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -139,14 +139,14 @@ export default function SuggestMoviePage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Film Adı *
+                  {contentType === 'film' ? 'Film' : 'Dizi'} Adı *
                 </label>
                 <Input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="bg-gray-700 border-gray-600 text-white"
-                  placeholder="The Ring"
+                  placeholder={contentType === 'film' ? 'The Ring' : 'Stranger Things'}
                 />
               </div>
 
@@ -197,7 +197,7 @@ export default function SuggestMoviePage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="bg-gray-700 border-gray-600 text-white"
-                  placeholder="Film hakkında kısa bir açıklama yazın..."
+                  placeholder={`${contentType === 'film' ? 'Film' : 'Dizi'} hakkında kısa bir açıklama yazın...`}
                   rows={4}
                 />
               </div>
@@ -247,7 +247,7 @@ export default function SuggestMoviePage() {
                   disabled={loading}
                   className="flex-1 bg-red-600 hover:bg-red-700"
                 >
-                  {loading ? 'Gönderiliyor...' : 'Filmi Öner'}
+                  {loading ? 'Gönderiliyor...' : `${contentType === 'film' ? 'Film' : 'Dizi'} Öner`}
                 </Button>
                 <Button
                   type="button"
@@ -263,5 +263,20 @@ export default function SuggestMoviePage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function SuggestMoviePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-red-950 pt-28 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-400">Yükleniyor...</p>
+        </div>
+      </div>
+    }>
+      <SuggestForm />
+    </Suspense>
   );
 }
