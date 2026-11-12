@@ -19,7 +19,9 @@ const UserSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, 'Şifre gerekli'],
-    minlength: [6, 'Şifre en az 6 karakter olmalı'],
+    minlength: [8, 'Şifre en az 8 karakter olmalı'],
+    maxlength: [100, 'Şifre çok uzun'],
+    select: false, // Varsayılan olarak şifreyi döndürme
   },
   roles: {
     type: [String],
