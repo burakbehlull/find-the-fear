@@ -73,14 +73,18 @@ export async function PUT(request, { params }) {
       }
     });
 
-    // Dizi için total hesapla
-    if (updateData.seasons && Array.isArray(updateData.seasons)) {
-      updateData.totalSeasons = updateData.seasons.length;
-      updateData.totalEpisodes = updateData.seasons.reduce(
-        (sum, season) => sum + (season.episodeCount || 0),
-        0
-      );
-    }
+      // Dizi ise total hesapla
+      if (updateData.seasons && Array.isArray(updateData.seasons)) {
+        updateData.totalSeasons = updateData.seasons.length;
+        updateData.totalEpisodes = updateData.seasons.reduce(
+          (sum, season) => sum + (season.episodes?.length || 0),
+          0
+        );
+        // Her sezon için episodeCount'u episodes.length'ten hesapla
+        updateData.seasons.forEach(season => {
+          season.episodeCount = season.episodes?.length || 0;
+        });
+      }
 
     const movie = await LibraryMovie.findByIdAndUpdate(
       id,

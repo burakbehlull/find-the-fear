@@ -164,9 +164,9 @@ export default function AdminPage() {
           setProcessingId(null);
           return;
         }
-        const invalidSeason = seasons.find(s => !s.episodeCount || s.episodeCount < 1);
+        const invalidSeason = seasons.find(s => !s.episodes || s.episodes.length < 1);
         if (invalidSeason) {
-          toast.error(`Sezon ${invalidSeason.seasonNumber} için bölüm sayısı girilmeli!`);
+          toast.error(`Sezon ${invalidSeason.seasonNumber} için en az 1 bölüm ekleyin!`);
           setProcessingId(null);
           return;
         }
@@ -239,9 +239,9 @@ export default function AdminPage() {
         toast.error('En az 1 sezon ekleyin!');
         return;
       }
-      const invalidSeason = movieForm.seasons.find(s => !s.episodeCount || s.episodeCount < 1);
+      const invalidSeason = movieForm.seasons.find(s => !s.episodes || s.episodes.length < 1);
       if (invalidSeason) {
-        toast.error(`Sezon ${invalidSeason.seasonNumber} için bölüm sayısı girilmeli!`);
+        toast.error(`Sezon ${invalidSeason.seasonNumber} için en az 1 bölüm ekleyin!`);
         return;
       }
     }
@@ -366,9 +366,9 @@ export default function AdminPage() {
         toast.error('En az 1 sezon ekleyin!');
         return;
       }
-      const invalidSeason = movieForm.seasons.find(s => !s.episodeCount || s.episodeCount < 1);
+      const invalidSeason = movieForm.seasons.find(s => !s.episodes || s.episodes.length < 1);
       if (invalidSeason) {
-        toast.error(`Sezon ${invalidSeason.seasonNumber} için bölüm sayısı girilmeli!`);
+        toast.error(`Sezon ${invalidSeason.seasonNumber} için en az 1 bölüm ekleyin!`);
         return;
       }
     }
@@ -844,43 +844,6 @@ export default function AdminPage() {
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-xs text-gray-400">Bölüm Sayısı *</label>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={season.episodeCount}
-                                    onChange={(e) => {
-                                      const newSeasons = [...movieForm.seasons];
-                                      const count = parseInt(e.target.value) || 0;
-                                      newSeasons[index].episodeCount = count;
-                                      
-                                      // Bölüm sayısı değiştiğinde episodes array'ini oluştur/güncelle
-                                      if (count > 0) {
-                                        const currentEpisodes = newSeasons[index].episodes || [];
-                                        const episodes = [];
-                                        for (let i = 1; i <= count; i++) {
-                                          // Mevcut bölüm varsa koru, yoksa yeni oluştur
-                                          episodes.push(currentEpisodes[i - 1] || {
-                                            episodeNumber: i,
-                                            title: '',
-                                            description: '',
-                                            duration: null,
-                                            airDate: null,
-                                          });
-                                        }
-                                        newSeasons[index].episodes = episodes;
-                                      } else {
-                                        newSeasons[index].episodes = [];
-                                      }
-                                      
-                                      setMovieForm({ ...movieForm, seasons: newSeasons });
-                                    }}
-                                    className="bg-gray-600 border-gray-500 text-white mt-1"
-                                    placeholder="8"
-                                  />
-                                </div>
-
-                                <div>
                                   <label className="text-xs text-gray-400">Yayın Yılı</label>
                                   <Input
                                     type="number"
@@ -892,6 +855,15 @@ export default function AdminPage() {
                                     }}
                                     className="bg-gray-600 border-gray-500 text-white mt-1"
                                     placeholder={new Date().getFullYear()}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-400">Toplam Bölüm</label>
+                                  <Input
+                                    type="number"
+                                    disabled
+                                    value={season.episodes?.length || 0}
+                                    className="bg-gray-600 border-gray-500 text-gray-400 mt-1"
                                   />
                                 </div>
                               </div>
@@ -911,84 +883,119 @@ export default function AdminPage() {
                                 />
                               </div>
 
-                              {/* Bölüm Detayları */}
-                              {season.episodes && season.episodes.length > 0 && (
-                                <div className="border-t border-gray-600 pt-3">
+                              {/* Bölüm Yönetimi */}
+                              <div className="border-t border-gray-600 pt-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="text-sm font-semibold text-white">
+                                    Bölümler ({season.episodes?.length || 0})
+                                  </h5>
                                   <Button
                                     type="button"
                                     size="sm"
                                     onClick={() => {
-                                      const key = `${index}`;
-                                      setExpandedEpisodes(
-                                        expandedEpisodes.includes(key)
-                                          ? expandedEpisodes.filter(k => k !== key)
-                                          : [...expandedEpisodes, key]
-                                      );
+                                      const newSeasons = [...movieForm.seasons];
+                                      const episodes = newSeasons[index].episodes || [];
+                                      episodes.push({
+                                        episodeNumber: episodes.length + 1,
+                                        title: '',
+                                        description: '',
+                                        duration: null,
+                                        airDate: null,
+                                      });
+                                      newSeasons[index].episodes = episodes;
+                                      newSeasons[index].episodeCount = episodes.length;
+                                      setMovieForm({ ...movieForm, seasons: newSeasons });
                                     }}
-                                    className="w-full bg-gray-600 hover:bg-gray-500 text-xs mb-2"
+                                    className="bg-green-600 hover:bg-green-700"
                                   >
-                                    {expandedEpisodes.includes(`${index}`)
-                                      ? '▼ Bölüm Detaylarını Gizle'
-                                      : `▶ Bölüm Detaylarını Göster (${season.episodes.length} bölüm)`}
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Bölüm Ekle
                                   </Button>
+                                </div>
 
-                                  {expandedEpisodes.includes(`${index}`) && (
-                                    <div className="space-y-2 max-h-96 overflow-y-auto">
-                                      {season.episodes.map((episode, epIndex) => (
-                                        <div key={epIndex} className="bg-gray-800 rounded p-3 space-y-2">
+                                {season.episodes && season.episodes.length > 0 ? (
+                                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                                    {season.episodes.map((episode, epIndex) => (
+                                      <div key={epIndex} className="bg-gray-800 rounded p-3 space-y-2">
+                                        <div className="flex items-center justify-between">
                                           <div className="font-semibold text-white text-sm">
                                             Bölüm {episode.episodeNumber}
                                           </div>
-                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            <div>
-                                              <label className="text-xs text-gray-400">Bölüm Adı (Opsiyonel)</label>
-                                              <Input
-                                                type="text"
-                                                value={episode.title || ''}
-                                                onChange={(e) => {
-                                                  const newSeasons = [...movieForm.seasons];
-                                                  newSeasons[index].episodes[epIndex].title = e.target.value;
-                                                  setMovieForm({ ...movieForm, seasons: newSeasons });
-                                                }}
-                                                className="bg-gray-700 border-gray-600 text-white text-xs h-8 mt-1"
-                                                placeholder="Pilot"
-                                              />
-                                            </div>
-                                            <div>
-                                              <label className="text-xs text-gray-400">Süre (dk)</label>
-                                              <Input
-                                                type="number"
-                                                value={episode.duration || ''}
-                                                onChange={(e) => {
-                                                  const newSeasons = [...movieForm.seasons];
-                                                  newSeasons[index].episodes[epIndex].duration = parseInt(e.target.value) || null;
-                                                  setMovieForm({ ...movieForm, seasons: newSeasons });
-                                                }}
-                                                className="bg-gray-700 border-gray-600 text-white text-xs h-8 mt-1"
-                                                placeholder="45"
-                                              />
-                                            </div>
-                                          </div>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={() => {
+                                              const newSeasons = [...movieForm.seasons];
+                                              newSeasons[index].episodes = newSeasons[index].episodes.filter(
+                                                (_, i) => i !== epIndex
+                                              );
+                                              // Bölüm numaralarını yeniden düzenle
+                                              newSeasons[index].episodes.forEach((ep, i) => {
+                                                ep.episodeNumber = i + 1;
+                                              });
+                                              newSeasons[index].episodeCount = newSeasons[index].episodes.length;
+                                              setMovieForm({ ...movieForm, seasons: newSeasons });
+                                            }}
+                                            className="bg-red-600/20 border border-red-600 text-red-400 hover:bg-red-600/40 h-6 px-2"
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                           <div>
-                                            <label className="text-xs text-gray-400">Açıklama (Opsiyonel)</label>
-                                            <Textarea
-                                              value={episode.description || ''}
+                                            <label className="text-xs text-gray-400">Bölüm Adı *</label>
+                                            <Input
+                                              type="text"
+                                              value={episode.title || ''}
                                               onChange={(e) => {
                                                 const newSeasons = [...movieForm.seasons];
-                                                newSeasons[index].episodes[epIndex].description = e.target.value;
+                                                newSeasons[index].episodes[epIndex].title = e.target.value;
                                                 setMovieForm({ ...movieForm, seasons: newSeasons });
                                               }}
-                                              className="bg-gray-700 border-gray-600 text-white text-xs mt-1"
-                                              placeholder="Bu bölümde..."
-                                              rows={2}
+                                              className="bg-gray-700 border-gray-600 text-white text-xs h-8 mt-1"
+                                              placeholder="Uzun Bir Gün"
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="text-xs text-gray-400">Süre (dk)</label>
+                                            <Input
+                                              type="number"
+                                              value={episode.duration || ''}
+                                              onChange={(e) => {
+                                                const newSeasons = [...movieForm.seasons];
+                                                newSeasons[index].episodes[epIndex].duration = parseInt(e.target.value) || null;
+                                                setMovieForm({ ...movieForm, seasons: newSeasons });
+                                              }}
+                                              className="bg-gray-700 border-gray-600 text-white text-xs h-8 mt-1"
+                                              placeholder="45"
                                             />
                                           </div>
                                         </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                                        <div>
+                                          <label className="text-xs text-gray-400">Açıklama (Opsiyonel)</label>
+                                          <Textarea
+                                            value={episode.description || ''}
+                                            onChange={(e) => {
+                                              const newSeasons = [...movieForm.seasons];
+                                              newSeasons[index].episodes[epIndex].description = e.target.value;
+                                              setMovieForm({ ...movieForm, seasons: newSeasons });
+                                            }}
+                                            className="bg-gray-700 border-gray-600 text-white text-xs mt-1"
+                                            placeholder="Bu bölümde..."
+                                            rows={2}
+                                          />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="bg-gray-800/50 rounded p-4 text-center">
+                                    <p className="text-xs text-gray-400">
+                                      Henüz bölüm eklenmedi. "Bölüm Ekle" butonuna tıklayın.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
 
@@ -1631,24 +1638,6 @@ export default function AdminPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label className="text-xs text-gray-400">Bölüm Sayısı *</label>
-                                    <Input
-                                      type="number"
-                                      min="1"
-                                      value={season.episodeCount}
-                                      onChange={(e) => {
-                                        const newSeasons = [...suggestionSeasons[suggestion._id]];
-                                        newSeasons[index].episodeCount = parseInt(e.target.value) || 0;
-                                        setSuggestionSeasons({
-                                          ...suggestionSeasons,
-                                          [suggestion._id]: newSeasons,
-                                        });
-                                      }}
-                                      className="bg-gray-600 border-gray-500 text-white text-sm h-8 mt-1"
-                                      placeholder="8"
-                                    />
-                                  </div>
-                                  <div>
                                     <label className="text-xs text-gray-400">Yayın Yılı</label>
                                     <Input
                                       type="number"
@@ -1663,6 +1652,15 @@ export default function AdminPage() {
                                       }}
                                       className="bg-gray-600 border-gray-500 text-white text-sm h-8 mt-1"
                                       placeholder={new Date().getFullYear()}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs text-gray-400">Toplam Bölüm</label>
+                                    <Input
+                                      type="number"
+                                      disabled
+                                      value={season.episodes?.length || 0}
+                                      className="bg-gray-600 border-gray-500 text-gray-400 text-sm h-8 mt-1"
                                     />
                                   </div>
                                 </div>
@@ -1683,13 +1681,114 @@ export default function AdminPage() {
                                     rows={2}
                                   />
                                 </div>
+
+                                {/* Bölüm Yönetimi */}
+                                <div className="border-t border-gray-600 pt-2">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h6 className="text-xs font-semibold text-white">
+                                      Bölümler ({season.episodes?.length || 0})
+                                    </h6>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={() => {
+                                        const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                        const episodes = newSeasons[index].episodes || [];
+                                        episodes.push({
+                                          episodeNumber: episodes.length + 1,
+                                          title: '',
+                                          description: '',
+                                          duration: null,
+                                        });
+                                        newSeasons[index].episodes = episodes;
+                                        newSeasons[index].episodeCount = episodes.length;
+                                        setSuggestionSeasons({
+                                          ...suggestionSeasons,
+                                          [suggestion._id]: newSeasons,
+                                        });
+                                      }}
+                                      className="bg-green-600 hover:bg-green-700 h-6 px-2 text-xs"
+                                    >
+                                      <Plus className="h-2 w-2 mr-1" />
+                                      Bölüm
+                                    </Button>
+                                  </div>
+
+                                  {season.episodes && season.episodes.length > 0 ? (
+                                    <div className="space-y-1 max-h-64 overflow-y-auto">
+                                      {season.episodes.map((ep, epIdx) => (
+                                        <div key={epIdx} className="bg-gray-800 rounded p-2 space-y-1">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-white">
+                                              Bölüm {ep.episodeNumber}
+                                            </span>
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              onClick={() => {
+                                                const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                                newSeasons[index].episodes = newSeasons[index].episodes.filter(
+                                                  (_, i) => i !== epIdx
+                                                );
+                                                // Renumber
+                                                newSeasons[index].episodes.forEach((e, i) => {
+                                                  e.episodeNumber = i + 1;
+                                                });
+                                                newSeasons[index].episodeCount = newSeasons[index].episodes.length;
+                                                setSuggestionSeasons({
+                                                  ...suggestionSeasons,
+                                                  [suggestion._id]: newSeasons,
+                                                });
+                                              }}
+                                              className="bg-red-600/20 border border-red-600 text-red-400 hover:bg-red-600/40 h-5 px-1"
+                                            >
+                                              <Trash2 className="h-2 w-2" />
+                                            </Button>
+                                          </div>
+                                          <Input
+                                            type="text"
+                                            value={ep.title || ''}
+                                            onChange={(e) => {
+                                              const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                              newSeasons[index].episodes[epIdx].title = e.target.value;
+                                              setSuggestionSeasons({
+                                                ...suggestionSeasons,
+                                                [suggestion._id]: newSeasons,
+                                              });
+                                            }}
+                                            className="bg-gray-700 border-gray-600 text-white text-xs h-7"
+                                            placeholder="Bölüm adı *"
+                                          />
+                                          <Textarea
+                                            value={ep.description || ''}
+                                            onChange={(e) => {
+                                              const newSeasons = [...suggestionSeasons[suggestion._id]];
+                                              newSeasons[index].episodes[epIdx].description = e.target.value;
+                                              setSuggestionSeasons({
+                                                ...suggestionSeasons,
+                                                [suggestion._id]: newSeasons,
+                                              });
+                                            }}
+                                            className="bg-gray-700 border-gray-600 text-white text-xs"
+                                            placeholder="Açıklama"
+                                            rows={1}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-gray-500 text-center py-2">
+                                      "Bölüm" butonuna tıklayın
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             ))}
                             <div className="bg-blue-900/20 border border-blue-700 rounded p-2">
                               <p className="text-xs text-blue-300">
                                 📊 Toplam: {suggestionSeasons[suggestion._id].length} Sezon,{' '}
                                 {suggestionSeasons[suggestion._id].reduce(
-                                  (sum, s) => sum + (s.episodeCount || 0),
+                                  (sum, s) => sum + (s.episodes?.length || 0),
                                   0
                                 )}{' '}
                                 Bölüm

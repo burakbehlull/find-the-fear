@@ -165,7 +165,9 @@ LibraryMovieSchema.pre('save', function(next) {
   if (this.type === 'series' && this.seasons && this.seasons.length > 0) {
     this.totalSeasons = this.seasons.length;
     this.totalEpisodes = this.seasons.reduce((sum, season) => {
-      return sum + (season.episodeCount || 0);
+      // Calculate episodeCount from episodes array length
+      season.episodeCount = season.episodes?.length || 0;
+      return sum + season.episodeCount;
     }, 0);
   }
   
